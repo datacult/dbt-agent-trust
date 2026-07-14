@@ -18,7 +18,7 @@ This layer connects a language model to the dbt semantic layer via MCP so it can
 - Implement any custom agent logic beyond connecting Claude to the dbt MCP tools
 - Lock to a specific model (the config should make it easy to swap Claude for another model)
 
-The agent layer is commodity plumbing. Keep it as thin as possible.
+
 
 ## Output format
 
@@ -33,7 +33,17 @@ Each question produces one JSON file in `agent_outputs/`:
   "agent_response": "The total revenue last quarter was $1,234,567.",
   "agent_sql": "SELECT SUM(revenue) FROM ...",
   "agent_result": [{"total_revenue": 1234567}],
-  "error": null
+  "tool_calls": [
+    {"tool": "query_metric", "input": {"metric": "total_revenue", "grain": "quarter"}, "output": "..."}
+  ],
+  "n_turns": 1,
+  "metric_queried": "total_revenue",
+  "declined_or_clarified": false,
+  "tokens": 48339,
+  "cost": 0.1152,
+  "duration_ms": 45821,
+  "error": null,
+  "error_type": null
 }
 ```
 
