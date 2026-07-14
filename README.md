@@ -30,6 +30,8 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
 
 ## Architecture
 
+![Architecture: how a question becomes a trust verdict](assets/architecture.png)
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                        PUBLIC DATASET                            │
