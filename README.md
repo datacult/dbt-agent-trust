@@ -50,7 +50,7 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    2. SEMANTIC LAYER                              │
+│                    2. SEMANTIC LAYER                             │
 │                                                                  │
 │  Metric definitions, dimensions, entities, relationships.        │
 │  MetricFlow YAML or dbt agent schema. The governed contract      │
@@ -61,7 +61,7 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    3. AGENT LAYER                                 │
+│                    3. AGENT LAYER                                │
 │                                                                  │
 │  Natural language question                                       │
 │       │                                                          │
@@ -78,20 +78,20 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
 └────────────────────────────┬─────────────────────────────────────┘
                              │
                              ▼
-┌──────────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────────-┐
 │                    4. EVALUATION LAYER                            │
-│                                                                  │
+│                                                                   │
 │  Golden questions (curated, validated)                            │
-│       │                                                          │
-│       ▼                                                          │
-│  Run each through the agent, capture output                      │
-│       │                                                          │
-│       ▼                                                          │
-│  LAYER 1: Deterministic comparison                               │
-│  ┌─────────────┐   ┌──────────────────┐   ┌───────────────────┐ │
-│  │ Strict match │──▶│ Column-tolerant  │──▶│ Approximate match │ │
-│  │ (exact)      │   │ (name/order)     │   │ (numeric tol.)    │ │
-│  └──────┬───────┘   └───────┬──────────┘   └────────┬──────────┘ │
+│       │                                                           │
+│       ▼                                                           │
+│  Run each through the agent, capture output                       │
+│       │                                                           │
+│       ▼                                                           │
+│  LAYER 1: Deterministic comparison                                │
+│  ┌─────────────┐    ┌──────────────────┐   ┌───────────────────┐  │
+│  │ Strict match │──▶│ Column-tolerant  │──▶│ Approximate match │  │
+│  │ (exact)      │   │ (name/order)     │   │ (numeric tol.)    │  │
+│  └──────┬───────┘   └───────┬──────────┘   └────────┬──────────┘  │
 │         │ pass              │ pass                   │ pass       │
 │         ▼                   ▼                        ▼            │
 │       PASS                PASS                     PASS           │
@@ -115,7 +115,7 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                    5. SYNTHESIS METHODOLOGY                      │
-│                    (documentation, not code)                      │
+│                    (documentation, not code)                     │
 │                                                                  │
 │  For interpretation/synthesis evaluation where no single         │
 │  correct answer exists:                                          │
