@@ -262,8 +262,8 @@ Our goal is to provide a clear, forkable starting point that teaches the approac
 
 This project is the joint Big Project from Data Culture's two members of the inaugural dbt Champions cohort and Joseph, a Senior Data Engineer at Data Culture:
 
-- **David Effiong** — *The Metric Agent Playbook*: building governed data agents on the dbt semantic layer
-- **Opeyemi Fabiyi** — *Trust by Design*: evaluating whether those agents are trustworthy
+- **David Effiong**: *The Metric Agent Playbook*: building governed data agents on the dbt semantic layer
+- **Opeyemi Fabiyi**: *Trust by Design*: evaluating whether those agents are trustworthy
 
 Two halves of one system. Built together, published together.
 
@@ -275,4 +275,5 @@ Apache 2.0
 
 - Opeyemi Fabiyi: [LinkedIn](https://linkedin.com/in/opeyemifabiyi)
 - David Effiong: [LinkedIn](https://linkedin.com/in/davideffiong) | [YouTube](https://youtube.com/@daviddata)
+- Joseph Ojo: [LinkedIn](https://www.linkedin.com/in/ojofemijoseph/)
 - Data Culture: [hello@datacult.com](mailto:hello@datacult.com) | [datacult.com](https://www.datacult.com)
