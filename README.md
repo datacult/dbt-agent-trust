@@ -255,7 +255,7 @@ Our goal is to provide a clear, forkable starting point that teaches the approac
 | Person | Role | Layers |
 |---|---|---|
 | **David Effiong** | dbt Champion, Data Culture | Data foundation, semantic layer, golden questions |
-| **Joseph Ojo** | Engineer, Data Culture | Agent layer, MCP integration |
+| **Joseph Ojo** | Senior Engineer, Data Culture | Agent layer, MCP integration |
 | **Opeyemi Fabiyi** | dbt Champion, Data Culture | Evaluation framework, synthesis methodology, golden questions |
 
 ## Part of the dbt Champions program
