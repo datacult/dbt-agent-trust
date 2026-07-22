@@ -300,21 +300,21 @@ When comparing months, compare same-month year-over-year (Jan 2018 vs Jan 2017) 
 
 ## Metrics Glossary
 
-| Metric | Definition | Filter | Who Uses It |
+| Metric | Definition | Filter  |
 |---|---|---|---|
-| GMV | SUM(price) from order items | Completed orders | Finance, Exec |
-| TOV | SUM(price + freight_value) from order items | Completed orders | Finance |
-| AOV | GMV / COUNT(DISTINCT order_id) | Completed orders | Marketing, Ops |
-| Order Count | COUNT(DISTINCT order_id) | Completed orders | Ops, Exec |
-| Cancellation Rate | Canceled / (Completed + Canceled) | Excl. created, unavailable | Ops |
-| On-Time Delivery Rate | Delivered on-time / Total delivered | Delivered with both dates | Logistics |
-| Delivery Time | delivered_date - purchase_date (days) | Delivered orders | Logistics |
-| Carrier Handoff Time | carrier_date - approved_date (days) | Delivered orders | Seller Success |
-| CSAT | % reviews scoring 4 or 5 | Orders with reviews | Ops, Exec |
-| Dissatisfaction Rate | % reviews scoring 1 or 2 | Orders with reviews | Ops, Quality |
-| Repeat Purchase Rate | Customers with 2+ orders / Total unique customers | By customer_unique_id | Marketing, Growth |
-| Freight Ratio | SUM(freight_value) / SUM(price) | Completed orders | Finance, Logistics |
-| Review Coverage | Orders with review / Total completed | All completed | Quality |
-| Active Sellers | Sellers with 1+ completed order in period | Per period | Seller Success |
-| Seller Concentration | % GMV from top N% sellers | Completed orders | Exec, Risk |
-| New Customer Count | customer_unique_ids with first order in period | By first purchase date | Marketing, Growth |
+| GMV | SUM(price) from order items | Completed orders |
+| TOV | SUM(price + freight_value) from order items | Completed orders |
+| AOV | GMV / COUNT(DISTINCT order_id) | Completed orders  |
+| Order Count | COUNT(DISTINCT order_id) | Completed orders |
+| Cancellation Rate | Canceled / (Completed + Canceled) | Excl. created, unavailable |
+| On-Time Delivery Rate | Delivered on-time / Total delivered | Delivered with both dates |
+| Delivery Time | delivered_date - purchase_date (days) | Delivered orders |
+| Carrier Handoff Time | carrier_date - approved_date (days) | Delivered orders |
+| CSAT | % reviews scoring 4 or 5 | Orders with reviews |
+| Dissatisfaction Rate | % reviews scoring 1 or 2 | Orders with reviews |
+| Repeat Purchase Rate | Customers with 2+ orders / Total unique customers | By customer_unique_id|
+| Freight Ratio | SUM(freight_value) / SUM(price) | Completed orders |
+| Review Coverage | Orders with review / Total completed | All completed |
+| Active Sellers | Sellers with 1+ completed order in period | Per period |
+| Seller Concentration | % GMV from top N% sellers | Completed orders |
+| New Customer Count | customer_unique_ids with first order in period | By first purchase date |
