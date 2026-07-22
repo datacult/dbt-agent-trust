@@ -301,7 +301,7 @@ When comparing months, compare same-month year-over-year (Jan 2018 vs Jan 2017) 
 ## Metrics Glossary
 
 | Metric | Definition | Filter  |
-|---|---|---|---|
+|---|---|---|
 | GMV | SUM(price) from order items | Completed orders |
 | TOV | SUM(price + freight_value) from order items | Completed orders |
 | AOV | GMV / COUNT(DISTINCT order_id) | Completed orders  |
