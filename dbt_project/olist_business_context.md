@@ -12,7 +12,7 @@ All monetary values are in **Brazilian Reais (BRL, R$)**.
 
 ## Revenue Definitions
 
-### Gross Merchandise Value (GMV)
+### 1. Gross Merchandise Value (GMV)
 The primary top-line metric. Total value of goods sold on the platform.
 
 **GMV = SUM(price) from order items on completed orders.**
@@ -25,14 +25,14 @@ GMV **excludes**:
 
 Total GMV across the dataset: approximately R$13.5 million.
 
-### Total Order Value (TOV)
+### 2. Total Order Value (TOV)
 The full amount the customer pays, including shipping.
 
 **TOV = SUM(price + freight_value) from order items on completed orders.**
 
 Freight adds approximately 16.6% on top of GMV across the platform. This ratio varies significantly by region and product category (heavy or bulky items in remote states carry much higher freight).
 
-### Average Order Value (AOV)
+### 3. Average Order Value (AOV)
 **AOV = GMV / COUNT(DISTINCT completed order_id)**
 
 Not: GMV / count of order items (that would be average item value, a different metric).
@@ -57,12 +57,12 @@ When someone asks about "revenue," "sales," or "how much did we sell," default t
 
 **Note:** The status in the data is spelled "canceled" (single L, American English), not "cancelled." Queries must match the exact string.
 
-### Completed Orders
+### 1. Completed Orders
 An order is **completed** if its status is: delivered, shipped, processing, invoiced, or approved. These represent transactions where the customer committed and the order proceeded.
 
 Default filter for all revenue, performance, and operational metrics is **completed orders only** unless the question specifically asks about cancellations or all orders.
 
-### Cancellation Rate
+### 2. Cancellation Rate
 **Cancellation rate = canceled orders / (completed orders + canceled orders)**
 
 Exclude "created" (incomplete checkout, not a cancellation) and "unavailable" (supply-side failure, not a customer cancellation) from both numerator and denominator.
@@ -93,7 +93,6 @@ The reporting date for an order is **order_purchase_timestamp** (when the custom
 - Stable growth: February 2017 through August 2018
 - Last complete month: August 2018
 
-September 2016 and September 2018 are partial months. Exclude them from monthly trend analysis or clearly mark them as incomplete. October 2016 and December 2016 are also thin (293 and 1 order respectively) and should be treated as early ramp, not representative months.
 
 **For clean trend analysis, use January 2017 through August 2018 as the reliable reporting window.**
 
@@ -101,7 +100,7 @@ September 2016 and September 2018 are partial months. Exclude them from monthly 
 
 ## Customer Definitions
 
-### The customer_id Trap
+### 1. The customer_id Trap
 The dataset has two customer identifiers, and using the wrong one produces silently incorrect results:
 
 - **customer_id**: Changes with every order. One person placing 3 orders gets 3 different customer_ids. Using this for "unique customer count" gives you the order count, not the customer count.
@@ -109,11 +108,11 @@ The dataset has two customer identifiers, and using the wrong one produces silen
 
 **Always use customer_unique_id for customer counts, cohort analysis, and retention metrics.** There are ~96,096 unique customers across ~99,441 orders.
 
-### New vs Returning Customers
+### 2. New vs Returning Customers
 - **New customer**: A customer_unique_id whose earliest order_purchase_timestamp falls within the reporting period
 - **Returning customer**: A customer_unique_id who placed a completed order before the start of the reporting period
 
-### Repeat Purchase Rate
+### 3. Repeat Purchase Rate
 **Repeat rate = customers with 2+ completed orders / total unique customers**
 
 The actual repeat purchase rate is approximately **3.1%** (2,997 repeat buyers out of 96,096 unique customers). This is low but typical for a marketplace aggregator where customers often don't realize they're buying through Olist versus buying directly from a retailer. Low brand recognition drives low repeat purchase to the platform specifically.
@@ -124,28 +123,28 @@ This metric matters for the business because improving it from 3% to even 5% rep
 
 ## Delivery Performance
 
-### On-Time Delivery
+### 1. On-Time Delivery
 **On-time** = order_delivered_customer_date is on or before order_estimated_delivery_date.
 **Late** = order_delivered_customer_date is after order_estimated_delivery_date.
 
 Only evaluate for orders with status = 'delivered' and where both date fields are populated.
 
-### Actual Performance (from the data)
+### 2. Actual Performance (from the data)
 - **On-time rate: 91.9%** (88,644 of 96,470 delivered orders with dates)
 - **Average delivery time: 12.6 days** (purchase to delivery)
 - **Median delivery time: 10.2 days**
 - **P95 delivery time: 29.3 days** (the long tail)
 - **Average days late when late: 9.6 days** past estimated delivery
 
-### Delivery Time
+### 3. Delivery Time
 **Delivery time = order_delivered_customer_date - order_purchase_timestamp**, in calendar days.
 
-### Carrier Handoff Time
+### 4. Carrier Handoff Time
 **Carrier handoff time = order_delivered_carrier_date - order_approved_at**, in calendar days.
 
 This measures seller fulfillment speed: how quickly the seller hands the package to the carrier after payment clears. This is the metric the seller success team cares about, because it's the part of delivery the seller controls.
 
-### Inter-State vs Intra-State
+### 5. Inter-State vs Intra-State
 - **Intra-state**: customer_state = seller_state
 - **Inter-state**: customer_state differs from seller_state
 
