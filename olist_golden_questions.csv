@@ -1,0 +1,41 @@
+id,question,expected_sql,Category,Difficulty,Business Rule Tested
+1,What was total GMV for Q1 2018?,,Aggregation,Easy,"GMV definition: SUM(price) on completed orders only, excludes freight"
+2,How many completed orders did we have in January 2018?,,Aggregation,Easy,Completed order status filter (delivered + shipped + processing + invoiced + approved)
+3,What was the average order value in Q4 2017?,,Aggregation,Easy,"AOV = GMV / distinct order count, not item count"
+4,What were the top 10 product categories by GMV in 2017?,,Ranking,Easy,English category names via translation table; GMV not TOV
+5,How many active sellers did we have in Q1 2018?,,Aggregation,Easy,Active = at least 1 completed order in the period
+6,What was the CSAT score for March 2018?,,Ratio,Easy,"CSAT = % of reviews scoring 4 or 5, not average review score"
+7,What percentage of orders were paid with boleto in 2017?,,Ratio,Easy,Payment type distribution; completed orders
+8,How many unique customers placed an order in 2018?,,Aggregation,Easy,Must use customer_unique_id not customer_id
+9,What was our best month by GMV in 2017?,,Ranking,Easy,GMV definition; should surface November (Black Friday)
+10,How many orders were canceled in 2017?,,Filtered Query,Easy,Status spelled 'canceled' (single L) in data
+11,What is the total freight customers paid in 2017?,,Aggregation,Easy,SUM(freight_value); completed orders; distinct from GMV
+12,What was total GMV by region for 2017?,,Aggregation,Medium,Regional grouping: states mapped to Southeast/South/Northeast/Central-West/North
+13,How many new customers did we acquire each month in 2017?,,Time Series,Medium,New = first order by customer_unique_id falls in that month
+14,What was our on-time delivery rate for Q1 2018?,,Ratio,Medium,On-time = delivered_customer_date <= estimated_delivery_date; delivered orders only with non-null dates
+15,What was the week-over-week GMV for January 2018?,,Time Series,Medium,Week starts Monday (ISO 8601); timezone conversion to America/Sao_Paulo
+16,What was the cancellation rate for the top 10 categories by order volume?,,Ratio,Medium,Cancel rate = canceled / (completed + canceled); exclude created and unavailable from denominator
+17,What was average delivery time for intra-state versus inter-state orders in Q4 2017?,,Multi-metric,Medium,Intra-state = customer_state equals seller_state; delivery time in days; delivered orders only
+18,What percentage of total GMV comes from the Southeast region?,,Ratio,Medium,Regional grouping (SP + RJ + MG + ES = Southeast); GMV not TOV
+19,Which product categories had a dissatisfaction rate above 15% with at least 50 reviews?,,Filtered Query,Medium,Dissatisfaction = score 1 or 2; minimum threshold for reliability
+20,What was the average number of installments for credit card orders above R$500?,,Filtered Query,Medium,Filter to credit_card payment type only; order value threshold on item price
+21,What was monthly GMV and order count for Health and Beauty in 2017?,,Time Series,Medium,Department grouping: Health and Beauty = health_beauty + perfumery + diapers_and_hygiene
+22,What is the freight ratio by region?,,Ratio,Medium,Freight ratio = SUM(freight_value) / SUM(price); regional grouping
+23,What was the review coverage rate by quarter in 2017?,,Ratio,Medium,Review coverage = orders with at least one review / total completed orders
+24,What percentage of orders had multiple items?,,Ratio,Medium,Multi-item = order_item_id count > 1 per order; completed orders
+25,How does average delivery time vary across the five regions?,,Aggregation,Medium,Regional grouping; delivery time = delivered minus purchased; delivered orders
+26,What was total order value including freight for Electronics in Q2 2017?,,Aggregation,Medium,TOV not GMV; Electronics department grouping
+27,What is the average order value by day of week? Is there a pattern?,,Multi-metric,Medium,Day of week from purchase timestamp; timezone conversion to Sao Paulo; AOV definition
+28,What was the average review score for the top 5 and bottom 5 product categories by GMV?,,Multi-metric,Medium,Requires ranking by GMV then computing avg score for those sets; English names
+29,What was the month-over-month GMV growth rate for 2017?,,Time Series,Hard,MoM growth requires window function; GMV definition; Jan 2017 onward
+30,What percentage of total GMV comes from the top 10% of sellers?,,Ratio,Hard,Seller concentration / Pareto analysis; percentile bucketing
+31,What is the repeat purchase rate?,,Ratio,Hard,Must use customer_unique_id; repeat = 2+ completed orders; actual answer ~3.1%
+32,Which categories grew the most from the first half of 2017 to the second half?,,Time Series,Hard,Period comparison by category; H1 vs H2; English category names; growth rate
+33,What was the average carrier handoff time by seller state for the top 10 states by volume?,,Multi-metric,Hard,Handoff = delivered_carrier_date minus approved_at; ranking plus aggregation
+34,For late deliveries what was the average number of days past the estimated date by customer region?,,Multi-metric,Hard,Late = delivered after estimated; regional grouping; date difference in days
+35,What was the CSAT trend by quarter split by intra-state and inter-state deliveries?,,Multi-metric,Hard,CSAT definition + delivery geography segmentation + quarterly time series
+36,Which regions are growing fastest? Show quarter-over-quarter GMV growth by region for 2017.,,Time Series,Hard,Regional grouping + QoQ growth + comparative ranking across regions
+37,How did Black Friday 2017 (November) compare to the surrounding months October and December in GMV and order count and CSAT?,,Multi-metric,Hard,Seasonality awareness; multiple metrics; Black Friday context
+38,Can you predict what our GMV will be in Q1 2019?,,Out of Scope,Easy,Agent should decline: forecasting outside analytical scope
+39,What is the profit margin by product category?,,Out of Scope,Easy,Agent should decline: no cost or margin data in dataset
+40,What is the conversion rate from page views to purchases?,,Out of Scope,Easy,Agent should decline: no web traffic data in dataset
