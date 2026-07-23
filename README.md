@@ -201,7 +201,7 @@ dbt-agent-trust/
 ### Prerequisites
 
 - Python 3.10+
-- [dbt-core](https://docs.getdbt.com/docs/core/installation-overview) with the DuckDB adapter
+- [dbt-fusion](https://docs.getdbt.com/docs/local/connect-data-platform/duckdb-setup?version=2.0&name=Fusion#installing-dbt-duckdb) with the DuckDB adapter
 - An Anthropic API key (for the agent and the LLM judge)
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 

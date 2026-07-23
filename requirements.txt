@@ -1,0 +1,3 @@
+# Python tooling for this repo (agent, evaluation, MCP).
+# dbt is NOT here — Fusion is a standalone binary.
+duckdb          # inspect the .duckdb file from Python / notebooks

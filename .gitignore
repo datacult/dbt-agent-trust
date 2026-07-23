@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# project outputs
+evaluation/results/
+agent/agent_outputs/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
