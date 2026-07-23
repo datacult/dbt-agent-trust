@@ -1,0 +1,7 @@
+olist:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: olist.duckdb    # created here, relative to the project
+      threads: 4

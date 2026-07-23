@@ -1,0 +1,168 @@
+version: 2
+
+models:
+  - name: stg_olist__customers
+    description: One row per customer address record. Note that customers are keyed by `customer_id` (unique per order) while `customer_unique_id` identifies the underlying person across repeat purchases.
+    columns:
+      - name: customer_id
+        description: Unique identifier for this customer/order relationship. Joins to `stg_olist__orders.customer_id`.
+        tests: [not_null, unique]
+      - name: customer_unique_id
+        description: Persistent identifier for the underlying customer across orders. Use this to count distinct people.
+        tests: [not_null]
+      - name: customer_zip_code_prefix
+        description: First 5 digits of the customer's Brazilian postal code (CEP), zero-padded.
+      - name: customer_city
+      - name: customer_state
+        description: Two-letter Brazilian state code (e.g. SP, RJ).
+
+  - name: stg_olist__orders
+    description: One row per order. Includes order lifecycle timestamps and a derived `is_completed` flag matching the business definition of a committed transaction.
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: customer_id
+        description: Foreign key to `stg_olist__customers.customer_id`.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_olist__customers')
+                field: customer_id
+      - name: order_status
+        description: Raw status string from source. One of delivered, shipped, canceled, unavailable, invoiced, processing, created, approved. Spelled 'canceled' (single L).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['delivered', 'shipped', 'canceled', 'unavailable', 'invoiced', 'processing', 'created', 'approved']
+      - name: is_completed
+        description: True when the order proceeded past checkout (delivered, shipped, processing, invoiced, or approved). Default filter for revenue and performance metrics.
+      - name: purchased_at
+        description: When the customer placed the order.
+      - name: approved_at
+      - name: delivered_to_carrier_at
+      - name: delivered_to_customer_at
+      - name: estimated_delivery_at
+
+  - name: stg_olist__order_items
+    description: One row per item on an order. An order can contain multiple items (same or different products). Item-level `price` is the merchandise value that rolls up to GMV; `freight_value` is logistics cost passed to the customer.
+    columns:
+      - name: order_item_pk
+        description: Surrogate key over (order_id, order_item_id).
+        tests: [not_null, unique]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_olist__orders')
+                field: order_id
+      - name: order_item_id
+        description: Sequential item number within the order (1, 2, ...).
+        tests: [not_null]
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_olist__products')
+                field: product_id
+      - name: seller_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_olist__sellers')
+                field: seller_id
+      - name: shipping_limit_at
+        description: Deadline by which the seller must hand off to the carrier.
+      - name: price
+        description: Merchandise price in BRL. Rolls up to GMV when filtered to completed orders.
+      - name: freight_value
+        description: Shipping cost passed to the customer, in BRL. Excluded from GMV; included in TOV.
+
+  - name: stg_olist__order_payments
+    description: One row per payment attempt on an order. Orders can have multiple payment records (e.g. split across voucher + credit card).
+    columns:
+      - name: order_payment_pk
+        description: Surrogate key over (order_id, payment_sequential).
+        tests: [not_null, unique]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_olist__orders')
+                field: order_id
+      - name: payment_sequential
+        description: Sequential index of the payment within the order.
+      - name: payment_type
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['credit_card', 'boleto', 'voucher', 'debit_card', 'not_defined']
+      - name: payment_installments
+        description: Number of installments the customer chose (Brazilian credit-card norm).
+      - name: payment_value
+        description: Amount paid on this payment record, in BRL.
+
+  - name: stg_olist__order_reviews
+    description: One row per review submitted by a customer. Reviews are prompted after delivery; not every order has one.
+    columns:
+      - name: review_id
+        description: Not guaranteed unique in raw data — duplicates exist where the same review was linked to multiple orders.
+        tests: [not_null]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_olist__orders')
+                field: order_id
+      - name: review_score
+        description: 1-5 star rating.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+      - name: review_comment_title
+      - name: review_comment_message
+      - name: review_created_at
+      - name: review_answered_at
+
+  - name: stg_olist__products
+    description: One row per product. Joined to the Portuguese-to-English category translation for downstream convenience. Fixes the source-typo columns `product_name_lenght`/`product_description_lenght`.
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+      - name: product_category_name
+        description: Category name in Portuguese (source system's canonical value). May be null for a small number of products.
+      - name: product_category_name_english
+        description: English translation of the category, via `product_category_name_translation`.
+      - name: product_name_length
+        description: Character length of the product name in the source listing.
+      - name: product_description_length
+      - name: product_photos_qty
+      - name: product_weight_g
+      - name: product_length_cm
+      - name: product_height_cm
+      - name: product_width_cm
+
+  - name: stg_olist__sellers
+    description: One row per seller (merchant on the marketplace).
+    columns:
+      - name: seller_id
+        tests: [not_null, unique]
+      - name: seller_zip_code_prefix
+        description: First 5 digits of the seller's Brazilian postal code (CEP), zero-padded.
+      - name: seller_city
+      - name: seller_state
+        description: Two-letter Brazilian state code.
+
+  - name: stg_olist__product_category_translation
+    description: Lookup table mapping Portuguese product category names to English.
+    columns:
+      - name: product_category_name
+        tests: [not_null, unique]
+      - name: product_category_name_english
+        tests: [not_null]
