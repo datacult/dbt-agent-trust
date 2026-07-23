@@ -1,0 +1,148 @@
+version: 2
+
+models:
+  - name: dim_products
+    description: Product dimension. One row per product with English category name and department rollup. Products with a null source category are labeled 'uncategorized'.
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+      - name: product_category_name
+        description: English category name; 'uncategorized' where the source category is null.
+        tests: [not_null]
+      - name: product_department
+        description: Executive-level department rollup used for reporting.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - Electronics
+                  - Home & Living
+                  - Health & Beauty
+                  - Sports & Leisure
+                  - Fashion & Accessories
+                  - Auto & Industry
+                  - Food & Drink
+                  - Books & Media
+                  - Baby & Toys
+                  - Tools & Construction
+                  - Pet
+                  - Stationery & Party
+                  - Other
+
+  - name: dim_customers
+    description: Customer dimension at the person grain (customer_unique_id). The address attributes reflect the customer's most recent order. Use this for customer counts, cohort, and retention.
+    columns:
+      - name: customer_unique_id
+        tests: [not_null, unique]
+      - name: customer_region
+        tests:
+          - accepted_values:
+              arguments:
+                values: [Southeast, South, Northeast, Central-West, North, Unknown]
+      - name: is_repeat_buyer
+        description: True when the customer has 2+ completed orders. Drives the repeat purchase rate metric.
+
+  - name: dim_sellers
+    description: Seller dimension. One row per seller with state and region.
+    columns:
+      - name: seller_id
+        tests: [not_null, unique]
+      - name: seller_region
+        tests:
+          - accepted_values:
+              arguments:
+                values: [Southeast, South, Northeast, Central-West, North, Unknown]
+
+  - name: dim_dates
+    description: Calendar date spine covering the dataset window (2016-2019). Provides year, quarter, month, ISO week, and truncation columns for time-series rollups.
+    columns:
+      - name: date_day
+        tests: [not_null, unique]
+
+  - name: fct_order_items
+    description: Atomic fact at the order-item grain. `gmv_amount` sums to GMV when filtered to `is_completed = true`; `tov_amount` sums to TOV under the same filter. Denormalized with customer, seller, and product department attributes for common rollups.
+    columns:
+      - name: order_item_pk
+        tests: [not_null, unique]
+      - name: order_id
+        tests: [not_null]
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
+      - name: seller_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_sellers')
+                field: seller_id
+      - name: customer_unique_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_unique_id
+      - name: is_completed
+        tests: [not_null]
+      - name: gmv_amount
+        tests: [not_null]
+
+  - name: fct_orders
+    description: Fact at the order grain. Carries lifecycle timestamps and delivery performance flags (`is_on_time`, `is_late`, `days_late`).
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: customer_unique_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_unique_id
+      - name: is_completed
+        tests: [not_null]
+      - name: order_status
+        tests:
+          - accepted_values:
+              arguments:
+                values: [delivered, shipped, canceled, unavailable, invoiced, processing, created, approved]
+
+  - name: fct_order_reviews
+    description: Fact at the (review_id, order_id) grain. Source review_id is not unique across orders; deduped in the intermediate layer. Use `is_positive_review` for CSAT and `is_negative_review` for dissatisfaction rate.
+    columns:
+      - name: review_pk
+        tests: [not_null, unique]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_orders')
+                field: order_id
+      - name: review_score
+        tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+
+  - name: fct_order_payments
+    description: Fact at the payment-record grain. An order can have multiple payment records (split payments); their sum equals TOV.
+    columns:
+      - name: order_payment_pk
+        tests: [not_null, unique]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_orders')
+                field: order_id
+      - name: payment_type
+        tests:
+          - accepted_values:
+              arguments:
+                values: [credit_card, boleto, voucher, debit_card, not_defined]

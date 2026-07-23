@@ -1,0 +1,23 @@
+select
+    order_item_pk,
+    order_id,
+    order_item_id,
+    product_id,
+    seller_id,
+    customer_id,
+    customer_unique_id,
+    order_status,
+    is_completed,
+    purchased_at,
+    purchased_at_sao_paulo,
+    customer_state,
+    customer_region,
+    seller_state,
+    seller_region,
+    is_intra_state,
+    product_category_name,
+    product_department,
+    price            as gmv_amount,
+    freight_value    as freight_amount,
+    item_total_value as tov_amount
+from {{ ref('int_order_items__enriched') }}

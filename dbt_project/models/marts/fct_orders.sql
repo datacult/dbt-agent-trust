@@ -1,0 +1,22 @@
+select
+    order_id,
+    customer_id,
+    customer_unique_id,
+    customer_state,
+    customer_region,
+    order_status,
+    is_completed,
+    is_delivered,
+    is_canceled,
+    purchased_at,
+    purchased_at_sao_paulo,
+    approved_at,
+    delivered_to_carrier_at,
+    delivered_to_customer_at,
+    estimated_delivery_at,
+    delivery_time_days,
+    carrier_handoff_days,
+    is_on_time,
+    is_late,
+    days_late
+from {{ ref('int_orders__enriched') }}

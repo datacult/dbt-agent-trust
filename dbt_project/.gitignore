@@ -4,3 +4,5 @@ dbt_internal_packages/
 logs/
 .user.yml
 *.duckdb
+.claudevalidate.sql
+validate.sql
