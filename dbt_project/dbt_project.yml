@@ -20,3 +20,4 @@ models:
       +materialized: ephemeral
     marts:
       +materialized: table
+      +tags: ['agent'] 

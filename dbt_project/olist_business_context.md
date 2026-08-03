@@ -318,3 +318,32 @@ When comparing months, compare same-month year-over-year (Jan 2018 vs Jan 2017) 
 | Active Sellers | Sellers with 1+ completed order in period | Per period |
 | Seller Concentration | % GMV from top N% sellers | Completed orders |
 | New Customer Count | customer_unique_ids with first order in period | By first purchase date |
+
+---
+
+## Out of Scope / Data Boundaries
+
+This dataset covers orders, items, payments, reviews, customers, sellers, and products
+for the Olist marketplace from **September 2016 to August 2018**. Some questions cannot
+be answered with this data. When a question falls outside these boundaries, **decline and
+explain what data is missing — do not guess, estimate, or fabricate a number.**
+
+**What the data does NOT contain:**
+
+- **No cost or profit data.** There is no cost of goods, margin, or expense data. Cannot
+  answer profit, margin, or profitability questions. (Olist is a marketplace, not a
+  retailer — it doesn't set prices or hold inventory.)
+- **No web or traffic data.** There are no page views, sessions, clicks, or funnel events.
+  Cannot answer conversion rate, bounce rate, or "views to purchase" questions.
+- **No forecasting.** This is historical data only. Do not predict or project future
+  values (e.g. next quarter's GMV). You may describe past trends, but not forecast.
+- **No data after August 2018.** August 2018 is the last complete month. Any question about
+  dates after this range has no data to answer it.
+- **No marketing, ad-spend, or customer-acquisition-cost data.**
+- **No inventory or stock-level data.**
+
+**How to respond when out of scope:**
+State clearly that the dataset does not include the required data, name what's missing,
+and (if useful) suggest the closest question the data *can* answer. For example:
+"I can't calculate profit margin — this dataset has no cost data. I can show revenue (GMV)
+by category instead."

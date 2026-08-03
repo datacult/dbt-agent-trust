@@ -1,16 +1,242 @@
 version: 2
 
 models:
+  - name: fct_order_items
+    description: >
+      Atomic revenue fact — one row per item on an order. This is the GMV/TOV grain.
+      Filter to is_completed = true for all revenue metrics.
+    columns:
+      - name: order_item_pk
+        description: Surrogate key, one row per (order_id, order_item_id). Grain of this table.
+        tests: [not_null, unique]
+      - name: order_id
+        description: The order this item belongs to. Join key to fct_orders.
+        tests: [not_null]
+      - name: order_item_id
+        description: Sequential item number within the order (1, 2, 3...).
+      - name: product_id
+        description: Product sold on this line. Joins to dim_products.
+        tests:
+          - not_null
+          - relationships:
+              arguments: { to: ref('dim_products'), field: product_id }
+      - name: seller_id
+        description: Seller that fulfilled this line. Joins to dim_sellers.
+        tests:
+          - not_null
+          - relationships:
+              arguments: { to: ref('dim_sellers'), field: seller_id }
+      - name: customer_id
+        description: Per-order customer key (one per order, not the person).
+      - name: customer_unique_id
+        description: Persistent person identifier. Use this to count distinct customers.
+        tests:
+          - relationships:
+              arguments: { to: ref('dim_customers'), field: customer_unique_id }
+      - name: order_status
+        description: Raw order status. 'canceled' is spelled with a single L.
+      - name: is_completed
+        description: True when the order counts as a real transaction (delivered, shipped, processing, invoiced, approved). Filter for all revenue.
+        tests: [not_null]
+      - name: purchased_at
+        description: Order purchase timestamp, UTC (naive).
+      - name: purchased_at_sao_paulo
+        description: Purchase timestamp converted to America/Sao_Paulo. Use for day/week/hour analysis.
+      - name: customer_state
+        description: Two-letter Brazilian state of the customer (e.g. SP, RJ).
+      - name: customer_region
+        description: Customer's macro-region (Southeast, South, Northeast, Central-West, North).
+      - name: seller_state
+        description: Two-letter Brazilian state of the seller.
+      - name: seller_region
+        description: Seller's macro-region.
+      - name: is_intra_state
+        description: True when customer_state = seller_state (shipment stayed in-state).
+      - name: product_category_name
+        description: Product category in English. 'uncategorized' when the source category is missing.
+      - name: product_department
+        description: Executive department rollup of the category (e.g. Electronics, Health & Beauty).
+      - name: gmv_amount
+        description: >
+          Merchandise value (item price) in BRL. SUM(gmv_amount) WHERE is_completed = GMV.
+          Excludes freight and non-completed orders.
+        tests: [not_null]
+      - name: freight_amount
+        description: Shipping cost passed to the customer, in BRL. Excluded from GMV; part of TOV.
+      - name: tov_amount
+        description: Total order value for the line = price + freight, in BRL. SUM WHERE is_completed = TOV.
+
+  - name: fct_orders
+    description: One row per order. Carries lifecycle timestamps and delivery-performance flags.
+    columns:
+      - name: order_id
+        description: Order identifier. Grain of this table.
+        tests: [not_null, unique]
+      - name: customer_id
+        description: Per-order customer key (one per order).
+      - name: customer_unique_id
+        description: Persistent person identifier. Use for distinct-customer and repeat analysis.
+        tests:
+          - relationships:
+              arguments: { to: ref('dim_customers'), field: customer_unique_id }
+      - name: customer_state
+        description: Customer's two-letter Brazilian state.
+      - name: customer_region
+        description: Customer's macro-region. Use this for order-level regional metrics.
+      - name: order_status
+        description: Order status. 'canceled' has a single L.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [delivered, shipped, canceled, unavailable, invoiced, processing, created, approved]
+      - name: is_completed
+        description: True for delivered/shipped/processing/invoiced/approved. The completed-order filter.
+        tests: [not_null]
+      - name: is_delivered
+        description: True when order_status = 'delivered'.
+      - name: is_canceled
+        description: True when order_status = 'canceled'.
+      - name: purchased_at
+        description: Purchase timestamp, UTC (naive).
+      - name: purchased_at_sao_paulo
+        description: Purchase timestamp in America/Sao_Paulo local time.
+      - name: approved_at
+        description: When payment was approved.
+      - name: delivered_to_carrier_at
+        description: When the seller handed the order to the carrier.
+      - name: delivered_to_customer_at
+        description: When the customer actually received the order.
+      - name: estimated_delivery_at
+        description: Delivery date promised to the customer at purchase.
+      - name: delivery_time_days
+        description: Days from purchase to customer delivery. Only set for delivered orders with dates.
+      - name: carrier_handoff_days
+        description: Days from approval to carrier handoff (seller fulfillment speed).
+      - name: is_on_time
+        description: True when delivered on or before the estimate. Null for non-delivered orders.
+      - name: is_late
+        description: True when delivered after the estimate. Null for non-delivered orders.
+      - name: days_late
+        description: Days past the estimate for late deliveries; null otherwise.
+
+  - name: fct_order_payments
+    description: One row per payment record. An order can have several (split payments); their sum equals TOV.
+    columns:
+      - name: order_payment_pk
+        description: Surrogate key over (order_id, payment_sequential). Grain of this table.
+        tests: [not_null, unique]
+      - name: order_id
+        description: Order this payment applies to. Joins to fct_orders.
+        tests:
+          - not_null
+          - relationships:
+              arguments: { to: ref('fct_orders'), field: order_id }
+      - name: payment_sequential
+        description: Index of the payment within the order (1, 2, ...).
+      - name: payment_type
+        description: Payment method used.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [credit_card, boleto, voucher, debit_card, not_defined]
+      - name: payment_installments
+        description: Number of installments the customer chose (Brazilian credit-card norm).
+      - name: payment_value
+        description: Amount paid on this record, in BRL.
+      - name: purchased_at
+        description: Purchase timestamp of the parent order, UTC.
+      - name: is_completed
+        description: Whether the parent order is completed.
+
+  - name: fct_order_reviews
+    description: One row per (review_id, order_id). Deduped upstream. Use is_positive_review for CSAT.
+    columns:
+      - name: review_pk
+        description: Surrogate key over (review_id, order_id). Grain of this table.
+        tests: [not_null, unique]
+      - name: review_id
+        description: Source review identifier (not unique across orders on its own).
+      - name: order_id
+        description: Reviewed order. Joins to fct_orders.
+        tests:
+          - not_null
+          - relationships:
+              arguments: { to: ref('fct_orders'), field: order_id }
+      - name: purchased_at
+        description: Purchase timestamp of the reviewed order, UTC.
+      - name: is_completed
+        description: Whether the reviewed order is completed.
+      - name: review_score
+        description: 1-5 star rating.
+        tests:
+          - accepted_values:
+              arguments: { values: [1, 2, 3, 4, 5] }
+      - name: is_positive_review
+        description: True when score >= 4. CSAT = AVG(is_positive_review).
+      - name: is_negative_review
+        description: True when score <= 2. Drives dissatisfaction rate.
+      - name: review_created_at
+        description: When the review was created (survey sent).
+      - name: review_answered_at
+        description: When the customer submitted the review.
+
+  - name: dim_customers
+    description: Person-grain customer dimension (customer_unique_id). Address reflects the most recent order.
+    columns:
+      - name: customer_unique_id
+        description: Persistent person identifier. Grain of this table.
+        tests: [not_null, unique]
+      - name: customer_state
+        description: State of the customer's most recent order.
+      - name: customer_region
+        description: Macro-region of the most recent order.
+        tests:
+          - accepted_values:
+              arguments: { values: [Southeast, South, Northeast, Central-West, North, Unknown] }
+      - name: customer_city
+        description: City of the most recent order.
+      - name: customer_zip_code_prefix
+        description: 5-digit CEP prefix of the most recent order, zero-padded.
+      - name: first_purchased_at
+        description: Timestamp of the customer's first order. Use for new-customer cohorts.
+      - name: last_purchased_at
+        description: Timestamp of the customer's most recent order.
+      - name: completed_order_count
+        description: Number of completed orders by this person.
+      - name: is_repeat_buyer
+        description: True when the customer has 2+ completed orders. Drives repeat purchase rate.
+
+  - name: dim_sellers
+    description: Seller dimension, one row per seller.
+    columns:
+      - name: seller_id
+        description: Seller identifier. Grain of this table.
+        tests: [not_null, unique]
+      - name: seller_state
+        description: Seller's two-letter Brazilian state.
+      - name: seller_region
+        description: Seller's macro-region.
+        tests:
+          - accepted_values:
+              arguments: { values: [Southeast, South, Northeast, Central-West, North, Unknown] }
+      - name: seller_city
+        description: Seller's city.
+      - name: seller_zip_code_prefix
+        description: Seller's 5-digit CEP prefix, zero-padded.
+
   - name: dim_products
-    description: Product dimension. One row per product with English category name and department rollup. Products with a null source category are labeled 'uncategorized'.
+    description: Product dimension. English category plus department rollup.
     columns:
       - name: product_id
+        description: Product identifier. Grain of this table.
         tests: [not_null, unique]
       - name: product_category_name
-        description: English category name; 'uncategorized' where the source category is null.
+        description: English category name; 'uncategorized' when source category is null.
         tests: [not_null]
+      - name: product_category_name_pt
+        description: Original Portuguese category name from the source.
       - name: product_department
-        description: Executive-level department rollup used for reporting.
+        description: Executive department rollup used for reporting.
         tests:
           - not_null
           - accepted_values:
@@ -29,120 +255,44 @@ models:
                   - Pet
                   - Stationery & Party
                   - Other
-
-  - name: dim_customers
-    description: Customer dimension at the person grain (customer_unique_id). The address attributes reflect the customer's most recent order. Use this for customer counts, cohort, and retention.
-    columns:
-      - name: customer_unique_id
-        tests: [not_null, unique]
-      - name: customer_region
-        tests:
-          - accepted_values:
-              arguments:
-                values: [Southeast, South, Northeast, Central-West, North, Unknown]
-      - name: is_repeat_buyer
-        description: True when the customer has 2+ completed orders. Drives the repeat purchase rate metric.
-
-  - name: dim_sellers
-    description: Seller dimension. One row per seller with state and region.
-    columns:
-      - name: seller_id
-        tests: [not_null, unique]
-      - name: seller_region
-        tests:
-          - accepted_values:
-              arguments:
-                values: [Southeast, South, Northeast, Central-West, North, Unknown]
+      - name: product_weight_g
+        description: Product weight in grams.
+      - name: product_length_cm
+        description: Product length in centimeters.
+      - name: product_height_cm
+        description: Product height in centimeters.
+      - name: product_width_cm
+        description: Product width in centimeters.
+      - name: product_photos_qty
+        description: Number of photos in the product listing.
 
   - name: dim_dates
-    description: Calendar date spine covering the dataset window (2016-2019). Provides year, quarter, month, ISO week, and truncation columns for time-series rollups.
+    description: Calendar date spine (2016-2019) for time-series rollups. Join on cast(purchased_at as date) = date_day.
     columns:
       - name: date_day
+        description: Calendar date. Grain of this table.
         tests: [not_null, unique]
-
-  - name: fct_order_items
-    description: Atomic fact at the order-item grain. `gmv_amount` sums to GMV when filtered to `is_completed = true`; `tov_amount` sums to TOV under the same filter. Denormalized with customer, seller, and product department attributes for common rollups.
-    columns:
-      - name: order_item_pk
-        tests: [not_null, unique]
-      - name: order_id
-        tests: [not_null]
-      - name: product_id
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_products')
-                field: product_id
-      - name: seller_id
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_sellers')
-                field: seller_id
-      - name: customer_unique_id
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_customers')
-                field: customer_unique_id
-      - name: is_completed
-        tests: [not_null]
-      - name: gmv_amount
-        tests: [not_null]
-
-  - name: fct_orders
-    description: Fact at the order grain. Carries lifecycle timestamps and delivery performance flags (`is_on_time`, `is_late`, `days_late`).
-    columns:
-      - name: order_id
-        tests: [not_null, unique]
-      - name: customer_unique_id
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_customers')
-                field: customer_unique_id
-      - name: is_completed
-        tests: [not_null]
-      - name: order_status
-        tests:
-          - accepted_values:
-              arguments:
-                values: [delivered, shipped, canceled, unavailable, invoiced, processing, created, approved]
-
-  - name: fct_order_reviews
-    description: Fact at the (review_id, order_id) grain. Source review_id is not unique across orders; deduped in the intermediate layer. Use `is_positive_review` for CSAT and `is_negative_review` for dissatisfaction rate.
-    columns:
-      - name: review_pk
-        tests: [not_null, unique]
-      - name: order_id
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('fct_orders')
-                field: order_id
-      - name: review_score
-        tests:
-          - accepted_values:
-              arguments:
-                values: [1, 2, 3, 4, 5]
-
-  - name: fct_order_payments
-    description: Fact at the payment-record grain. An order can have multiple payment records (split payments); their sum equals TOV.
-    columns:
-      - name: order_payment_pk
-        tests: [not_null, unique]
-      - name: order_id
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('fct_orders')
-                field: order_id
-      - name: payment_type
-        tests:
-          - accepted_values:
-              arguments:
-                values: [credit_card, boleto, voucher, debit_card, not_defined]
+      - name: year
+        description: Calendar year.
+      - name: quarter
+        description: Quarter number (1-4).
+      - name: month
+        description: Month number (1-12).
+      - name: iso_week
+        description: ISO 8601 week number (weeks start Monday).
+      - name: day_of_month
+        description: Day of the month (1-31).
+      - name: day_of_week
+        description: Day of week (0 = Sunday ... 6 = Saturday, DuckDB convention).
+      - name: week_start_date
+        description: Monday date of that ISO week.
+      - name: month_start_date
+        description: First day of the month.
+      - name: quarter_start_date
+        description: First day of the quarter.
+      - name: year_start_date
+        description: First day of the year.
+      - name: year_quarter
+        description: Label like '2017-Q4'.
+      - name: year_month
+        description: Label like '2017-11'.
