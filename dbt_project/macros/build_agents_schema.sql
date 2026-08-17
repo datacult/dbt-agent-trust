@@ -45,8 +45,14 @@
   ] %}
   {% do run_query('insert into agents.root values ' ~ (root | join(','))) %}
 
-  {# load the human-authored business rules + scope boundaries straight from the markdown #}
-  {% do run_query("insert into agents.root select 'olist', 'business_context', content from read_text('olist_business_context.md')") %}
+  {# load one or more human-authored context files into ROOT.
+     Add a row per domain here, e.g. ('marketing','context','marketing_context.md'). #}
+  {% set context_files = [
+      ('olist', 'business_context', 'olist_business_context.md')
+  ] %}
+  {% for prov, k, path in context_files %}
+    {% do run_query("insert into agents.root select " ~ _agents_str(prov) ~ ", " ~ _agents_str(k) ~ ", content from read_text('" ~ path ~ "')") %}
+  {% endfor %}
 
-  {{ log('AGENTS built (marts only): ' ~ (models|length) ~ ' models, ' ~ (columns|length) ~ ' columns, ' ~ (deps|length) ~ ' deps, + business_context.', info=true) }}
+  {{ log('AGENTS built (marts only): ' ~ (models|length) ~ ' models, ' ~ (columns|length) ~ ' columns, ' ~ (deps|length) ~ ' deps, ' ~ (context_files|length) ~ ' context file(s).', info=true) }}
 {% endmacro %}
