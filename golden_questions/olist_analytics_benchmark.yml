@@ -452,8 +452,33 @@
   category: Time Series
   difficulty: Medium
   business_rule_tested: 'Department grouping: Health and Beauty = health_beauty + perfumery + diapers_and_hygiene'
-  expected_sql: null
-  expected_answer: null
+  expected_sql: |-
+    select
+        date_trunc('month', purchased_at_sao_paulo) as month,
+        sum(gmv_amount) as gmv,
+        count(distinct order_id) as order_count
+    from fct_order_items
+    where is_completed
+      and product_department = 'Health & Beauty'
+      and purchased_at_sao_paulo >= '2017-01-01'
+      and purchased_at_sao_paulo < '2018-01-01'
+    group by 1
+    order by 1;
+  expected_answer: '│        month        │        gmv         │ order_count │
+│      timestamp      │       double       │    int64    │
+├─────────────────────┼────────────────────┼─────────────┤
+│ 2017-01-01 00:00:00 │ 17673.919999999987 │         111 │
+│ 2017-02-01 00:00:00 │ 31048.970000000085 │         204 │
+│ 2017-03-01 00:00:00 │ 45705.480000000105 │         296 │
+│ 2017-04-01 00:00:00 │  42602.06000000009 │         275 │
+│ 2017-05-01 00:00:00 │  66990.05000000005 │         402 │
+│ 2017-06-01 00:00:00 │  56615.40000000003 │         384 │
+│ 2017-07-01 00:00:00 │   47355.6400000001 │         394 │
+│ 2017-08-01 00:00:00 │  62956.00000000001 │         461 │
+│ 2017-09-01 00:00:00 │  66546.12000000005 │         504 │
+│ 2017-10-01 00:00:00 │  58536.94000000006 │         505 │
+│ 2017-11-01 00:00:00 │ 111080.14999999998 │         826 │
+│ 2017-12-01 00:00:00 │  88933.39999999998 │         661'
 
 - id: 22
   question: What is the freight ratio by region?
@@ -567,7 +592,7 @@
   expected_answer: 'total_order_value  │
 │       double       │
 ├────────────────────┤
-│ 12974.660000000002'
+│ 184835.66000000018'
 
 - id: 27
   question: What is the average order value by day of week? Is there a pattern?
@@ -755,8 +780,42 @@
   category: Time Series
   difficulty: Hard
   business_rule_tested: Period comparison by category; H1 vs H2; English category names; growth rate
-  expected_sql: null
-  expected_answer: null
+  expected_sql: |-
+    with category_halves as (
+
+        select
+            product_category_name,
+            sum(case when purchased_at_sao_paulo >= '2017-01-01' and purchased_at_sao_paulo < '2017-07-01' then gmv_amount else 0 end) as h1_gmv,
+            sum(case when purchased_at_sao_paulo >= '2017-07-01' and purchased_at_sao_paulo < '2018-01-01' then gmv_amount else 0 end) as h2_gmv
+        from fct_order_items
+        where is_completed
+          and purchased_at_sao_paulo >= '2017-01-01'
+          and purchased_at_sao_paulo < '2018-01-01'
+        group by 1
+
+    )
+
+    select
+        product_category_name,
+        h1_gmv,
+        h2_gmv,
+        (h2_gmv - h1_gmv) / h1_gmv as growth_rate
+    from category_halves
+    where h1_gmv > 0
+    order by growth_rate desc
+    limit 10;
+  expected_answer: '│         product_category_name          │  h1_gmv   │       h2_gmv       │    growth_rate     │
+├─────────────────────────────────────────┼───────────┼────────────────────┼────────────────────┤
+│ computers                               │   5748.99 │ 153481.79999999996 │ 25.697176373589095 │
+│ food_drink                              │    607.39 │  6815.349999999998 │ 10.220714861950308 │
+│ small_appliances_home_oven_and_coffee   │      71.9 │             750.05 │  9.431849791376912 │
+│ construction_tools_construction         │   1782.05 │ 18418.730000000003 │  9.335697651581047 │
+│ christmas_supplies                      │     253.7 │  2588.230000000002 │  9.201931415057162 │
+│ construction_tools_safety               │     759.0 │  7505.799999999998 │  8.889064558629775 │
+│ agro_industry_and_commerce              │ 3342.7399 │ 25836.459999999992 │  6.729126405284289 │
+│ books_technical                         │     716.9 │            5045.32 │  6.037690054400893 │
+│ industry_commerce_and_business          │   1153.77 │  7582.799999999997 │  5.572193764788474 │
+│ arts_and_craftmanship                   │     21.99 │              129.9 │  4.907230559345158'
 
 - id: 33
   question: What was the average carrier handoff time by seller state for the top 10 states by volume?
