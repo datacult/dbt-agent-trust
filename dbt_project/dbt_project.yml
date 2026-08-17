@@ -2,8 +2,6 @@ name: 'olist'
 version: '1.0.0'
 profile: 'olist'
 
-require-dbt-version: [">=2.0.0-preview", "<3.0.0"]
-
 model-paths: ["models"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
@@ -12,12 +10,15 @@ test-paths: ["tests"]
 target-path: "target"
 clean-targets: ["target", "dbt_packages"]
 
+on-run-end:
+  - "{% if flags.WHICH in ['run', 'build'] %}{{ build_agents_schema() }}{% endif %}"
+
 models:
   olist:
     staging:
       +materialized: view
     intermediate:
-      +materialized: ephemeral
+      +materialized: table
     marts:
       +materialized: table
-      +tags: ['agent'] 
+      +tags: ['agent']
