@@ -87,7 +87,7 @@ Four tables, following the [dbt-labs/agents_schema](https://github.com/dbt-labs/
 | `agents.dbt_column` | One row per column, with descriptions |
 | `agents.dbt_dependency` | Dependency edges between exposed models |
 
-Only **mart** models (tagged `agent`) are exposed with staging and intermediate models are intentionally hidden. The tables are **regenerated on every build**, so your `.yml` descriptions and `business_context.md` are the single source of truth. Never hand-edit the `AGENTS` tables, edit the source and re-run `dbt build`. If rebuilding at every dbt build is too frequent, you can make updates to recreate the agent schema based on your required cadance. 
+Only **mart** models (tagged `agent`) are exposed with staging and intermediate models are intentionally hidden. The tables are **regenerated on every build**, so your `.yml` descriptions and `business_context.md` are the single source of truth. Never hand-edit the `AGENTS` tables, edit the source and re-run `dbt build`. If rebuilding at every dbt build is too frequent, you can make updates to recreate the agent schema based on your required cadence. 
 
 ## Using Agent Schema as a real-world metrics / context layer
 
@@ -160,7 +160,7 @@ select model_id, column_name, description from agents.dbt_column;
 What was *actually read on a given turn* is visible in your **MCP/agent tool-call logs** (they record each query the agent ran). Transparency comes from both: the context is fully inspectable, and the runtime trace is your client's tool-call log. That auditability is a direct benefit of putting context *in the warehouse* rather than behind a service.
 
 ### How do I update the context, and can the agent write to my data?
-- **Update:** edit the source (`.yml` descriptions or `business_context.md`) and re-run `dbt build`. The `agents.*` tables are **regenerated every build** (or at your preferred cadance).
+- **Update:** edit the source (`.yml` descriptions or `business_context.md`) and re-run `dbt build`. The `agents.*` tables are **regenerated every build** (or at your preferred cadence).
 - **Safety:** connect the MCP server **read-only** (the agent can't modify data), and expose **only mart models** (`+tags: ['agent']`) — staging, intermediate, and any sensitive columns you don't tag stay invisible. Governance is *what you expose* + *read-only access* + *scope rules in `root`*.
 
 > When in doubt about table shapes or conventions, refer to the spec: [dbt-labs/agents_schema](https://github.com/dbt-labs/agents_schema).

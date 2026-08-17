@@ -1,0 +1,478 @@
+id,question,expected_sql,Category,Difficulty,Business Rule Tested
+1,What was total GMV for Q1 2018?,"select
+    sum(gmv_amount) as total_gmv
+from fct_order_items
+where is_completed
+  and purchased_at_sao_paulo >= '2018-01-01'
+  and purchased_at_sao_paulo < '2018-04-01';",Aggregation,Easy,"GMV definition: SUM(price) on completed orders only, excludes freight"
+2,How many completed orders did we have in January 2018?,"select
+    count(is_completed) as completed_orders
+from fct_orders
+where is_completed
+  and purchased_at_sao_paulo >= '2018-01-01'
+  and purchased_at_sao_paulo < '2018-02-01';",Aggregation,Easy,Completed order status filter (delivered + shipped + processing + invoiced + approved)
+3,What was the average order value in Q4 2017?,"select
+            sum(gmv_amount) / count(distinct order_id) as average_order_value
+        from fct_order_items
+        where is_completed
+          and purchased_at_sao_paulo >= '2017-10-01'
+          and purchased_at_sao_paulo < '2018-01-01';",Aggregation,Easy,"AOV = GMV / distinct order count, not item count"
+4,What were the top 10 product categories by GMV in 2017?,"select
+    product_category_name,
+    sum(gmv_amount) as gmv
+from fct_order_items
+where is_completed
+  and purchased_at_sao_paulo >= '2017-01-01'
+  and purchased_at_sao_paulo < '2018-01-01'
+group by product_category_name
+order by gmv desc
+limit 10;",Ranking,Easy,English category names via translation table; GMV not TOV
+5,How many active sellers did we have in Q1 2018?,"select
+    count(distinct seller_id) as active_sellers
+from fct_order_items
+where is_completed
+  and purchased_at_sao_paulo >= '2018-01-01'
+  and purchased_at_sao_paulo < '2018-04-01';",Aggregation,Easy,Active = at least 1 completed order in the period
+6,What was the CSAT score for March 2018?,"select
+            avg(case when is_positive_review then 1.0 else 0.0 end) as csat
+        from fct_order_reviews
+        where is_completed
+          and purchased_at >= '2018-03-01'
+          and purchased_at < '2018-04-01';",Ratio,Easy,"CSAT = % of reviews scoring 4 or 5, not average review score"
+7,What percentage of orders were paid with boleto in 2017?,"select
+            count(distinct case when payment_type = 'boleto' then order_id end)
+            * 100.0
+            / count(distinct order_id) as boleto_order_percentage
+        from fct_order_payments
+        where is_completed
+          and purchased_at >= '2017-01-01'
+          and purchased_at < '2018-01-01';",Ratio,Easy,Payment type distribution; completed orders
+8,How many unique customers placed an order in 2018?,"select
+            count(distinct customer_unique_id) as unique_customers
+        from fct_orders
+        where is_completed
+          and purchased_at_sao_paulo >= '2018-01-01'
+          and purchased_at_sao_paulo < '2019-01-01';",Aggregation,Easy,Must use customer_unique_id not customer_id
+9,What was our best month by GMV in 2017?,"select
+    date_trunc('month', purchased_at_sao_paulo) as month,
+    sum(gmv_amount) as gmv
+from fct_order_items
+where is_completed
+  and purchased_at_sao_paulo >= '2017-01-01'
+  and purchased_at_sao_paulo < '2018-01-01'
+group by 1
+order by gmv desc
+limit 1;",Ranking,Easy,GMV definition; should surface November (Black Friday)
+10,How many orders were canceled in 2017?,"select
+            count(*) as canceled_orders
+        from fct_orders
+        where is_canceled
+          and purchased_at_sao_paulo >= '2017-01-01'
+          and purchased_at_sao_paulo < '2018-01-01';",Filtered Query,Easy,Status spelled 'canceled' (single L) in data
+11,What is the total freight customers paid in 2017?,"select
+            sum(freight_amount) as total_freight
+        from fct_order_items
+        where is_completed
+          and purchased_at_sao_paulo >= '2017-01-01'
+          and purchased_at_sao_paulo < '2018-01-01';",Aggregation,Easy,SUM(freight_value); completed orders; distinct from GMV
+12,What was total GMV by region for 2017?,"select
+    customer_region,
+    sum(gmv_amount) as gmv
+from fct_order_items
+where is_completed
+  and purchased_at_sao_paulo >= '2017-01-01'
+  and purchased_at_sao_paulo < '2018-01-01'
+group by customer_region
+order by gmv desc;",Aggregation,Medium,Regional grouping: states mapped to Southeast/South/Northeast/Central-West/North
+13,How many new customers did we acquire each month in 2017?,"select
+    date_trunc('month', first_purchased_at) as month,
+    count(*) as new_customers
+from dim_customers
+where first_purchased_at >= '2017-01-01'
+  and first_purchased_at < '2018-01-01'
+group by 1
+order by 1;",Time Series,Medium,New = first order by customer_unique_id falls in that month
+14,What was our on-time delivery rate for Q1 2018?,"select
+    avg(case when is_on_time then 1.0 else 0.0 end) as on_time_delivery_rate
+from fct_orders
+where is_delivered
+  and purchased_at_sao_paulo >= '2018-01-01'
+  and purchased_at_sao_paulo < '2018-04-01';",Ratio,Medium,On-time = delivered_customer_date <= estimated_delivery_date; delivered orders only with non-null dates
+15,What was the week-over-week GMV for January 2018?,"select
+    date_trunc('week', purchased_at_sao_paulo) as week_start,
+    sum(gmv_amount) as gmv
+from fct_order_items
+where is_completed
+  and purchased_at_sao_paulo >= '2018-01-01'
+  and purchased_at_sao_paulo < '2018-02-01'
+group by 1
+order by 1;",Time Series,Medium,Week starts Monday (ISO 8601); timezone conversion to America/Sao_Paulo
+16,What was the cancellation rate for the top 10 categories by order volume?,"with top_categories as (
+
+    select
+        product_category_name,
+        count(distinct order_id) as order_count
+    from fct_order_items
+    where order_status in ('approved', 'processing', 'invoiced', 'shipped', 'delivered', 'canceled')
+    group by 1
+    order by order_count desc
+    limit 10
+
+)
+
+select
+    oi.product_category_name,
+    count(distinct case when order_status = 'canceled' then order_id end) * 100.0
+        /
+    count(distinct order_id) as cancellation_rate
+from fct_order_items oi
+join top_categories tc
+  on oi.product_category_name = tc.product_category_name
+where order_status in ('approved', 'processing', 'invoiced', 'shipped', 'delivered', 'canceled')
+group by 1
+order by cancellation_rate desc;",Ratio,Medium,Cancel rate = canceled / (completed + canceled); exclude created and unavailable from denominator
+17,What was average delivery time for intra-state versus inter-state orders in Q4 2017?,"select
+
+    case
+
+        when is_intra_state then 'Intra-state'
+
+        else 'Inter-state'
+
+    end as shipment_type,
+
+    avg(delivery_time_days) as average_delivery_days
+
+from fct_orders o
+
+left join fct_order_items oi
+
+on o.order_id = oi.order_id
+
+
+
+where is_delivered
+
+  and o.purchased_at_sao_paulo >= '2017-10-01' 
+
+  and o.purchased_at_sao_paulo < '2018-01-01' 
+
+group by 1;",Multi-metric,Medium,Intra-state = customer_state equals seller_state; delivery time in days; delivered orders only
+18,What percentage of total GMV comes from the Southeast region?,"select
+    sum(case when customer_region = 'Southeast' then gmv_amount else 0 end)
+    * 100.0
+    /
+    sum(gmv_amount) as southeast_gmv_percentage
+from fct_order_items
+where is_completed;",Ratio,Medium,Regional grouping (SP + RJ + MG + ES = Southeast); GMV not TOV
+19,Which product categories had a dissatisfaction rate above 15% with at least 50 reviews?,"select
+    oi.product_category_name,
+    avg(case when r.is_negative_review then 1.0 else 0.0 end) * 100 as dissatisfaction_rate,
+    count(*) as review_count
+from fct_order_reviews r
+join fct_order_items oi
+  on r.order_id = oi.order_id
+where r.is_completed
+group by 1
+having count(*) >= 50
+   and avg(case when r.is_negative_review then 1.0 else 0.0 end) > 0.15
+order by dissatisfaction_rate desc;",Filtered Query,Medium,Dissatisfaction = score 1 or 2; minimum threshold for reliability
+20,What was the average number of installments for credit card orders above R$500?,"with order_values as (
+
+    select
+        order_id,
+        sum(gmv_amount) as order_value
+    from fct_order_items
+    where is_completed
+    group by 1
+
+)
+
+select
+    avg(payment_installments) as average_installments
+from fct_order_payments p
+join order_values o
+  on p.order_id = o.order_id
+where p.is_completed
+  and p.payment_type = 'credit_card'
+  and o.order_value > 500;",Filtered Query,Medium,Filter to credit_card payment type only; order value threshold on item price
+21,What was monthly GMV and order count for Health and Beauty in 2017?,"select
+    date_trunc('month', purchased_at_sao_paulo) as month,
+    sum(gmv_amount) as gmv,
+    count(distinct order_id) as order_count
+from fct_order_items
+where is_completed
+  and product_department = 'Health & Beauty'
+  and purchased_at_sao_paulo >= '2017-01-01'
+  and purchased_at_sao_paulo < '2018-01-01'
+group by 1
+order by 1;
+",Time Series,Medium,Department grouping: Health and Beauty = health_beauty + perfumery + diapers_and_hygiene
+22,What is the freight ratio by region?,"select
+    customer_region,
+    sum(freight_amount) / sum(gmv_amount) as freight_ratio
+from fct_order_items
+where is_completed
+group by customer_region
+order by freight_ratio desc;",Ratio,Medium,Freight ratio = SUM(freight_value) / SUM(price); regional grouping
+23,What was the review coverage rate by quarter in 2017?,"select
+    date_trunc('quarter', o.purchased_at_sao_paulo) as quarter,
+    count(distinct r.order_id) * 100.0
+        / count(distinct o.order_id) as review_coverage_rate
+from fct_orders o
+left join fct_order_reviews r
+    on o.order_id = r.order_id
+where o.is_completed
+  and o.purchased_at_sao_paulo >= '2017-01-01'
+  and o.purchased_at_sao_paulo < '2018-01-01'
+group by 1
+order by 1;",Ratio,Medium,Review coverage = orders with at least one review / total completed orders
+24,What percentage of orders had multiple items?,"with order_item_counts as (
+
+    select
+        order_id,
+        count(*) as item_count
+    from fct_order_items
+    where is_completed
+    group by order_id
+
+)
+
+select
+    count(case when item_count > 1 then 1 end) * 100.0
+        / count(*) as multi_item_order_percentage
+from order_item_counts;",Ratio,Medium,Multi-item = order_item_id count > 1 per order; completed orders
+25,How does average delivery time vary across the five regions?,"select
+    customer_region,
+    avg(delivery_time_days) as average_delivery_days
+from fct_orders
+where is_delivered
+group by customer_region
+order by average_delivery_days desc;",Aggregation,Medium,Regional grouping; delivery time = delivered minus purchased; delivered orders
+26,What was total order value including freight for Electronics in Q2 2017?,"select
+    sum(tov_amount) as total_order_value
+from fct_order_items
+where is_completed
+  and product_department = 'Electronics'
+  and purchased_at_sao_paulo >= '2017-04-01'
+  and purchased_at_sao_paulo < '2017-07-01';",Aggregation,Medium,TOV not GMV; Electronics department grouping
+27,What is the average order value by day of week? Is there a pattern?,"with order_values as (
+
+    select
+        order_id,
+        date_part('dow', purchased_at_sao_paulo) as day_of_week,
+        sum(gmv_amount) as order_value
+    from fct_order_items
+    where is_completed
+    group by 1, 2
+
+)
+
+select
+    day_of_week,
+    avg(order_value) as average_order_value
+from order_values
+group by day_of_week
+order by day_of_week;",Multi-metric,Medium,Day of week from purchase timestamp; timezone conversion to Sao Paulo; AOV definition
+28,What was the average review score for the top 5 and bottom 5 product categories by GMV?,"with category_gmv as (
+
+    select
+        product_category_name,
+        sum(gmv_amount) as gmv
+    from fct_order_items
+    where is_completed
+    group by 1
+
+),
+
+ranked_categories as (
+
+    select
+        *,
+        rank() over (order by gmv desc) as top_rank,
+        rank() over (order by gmv asc) as bottom_rank
+    from category_gmv
+
+)
+
+select
+    rc.product_category_name,
+    avg(r.review_score) as average_review_score
+from ranked_categories rc
+join fct_order_items oi
+    on rc.product_category_name = oi.product_category_name
+join fct_order_reviews r
+    on oi.order_id = r.order_id
+where rc.top_rank <= 5
+   or rc.bottom_rank <= 5
+group by rc.product_category_name
+order by average_review_score desc;",Multi-metric,Medium,Requires ranking by GMV then computing avg score for those sets; English names
+29,What was the month-over-month GMV growth rate for 2017?,"with monthly_gmv as (
+
+    select
+        date_trunc('month', purchased_at_sao_paulo) as month,
+        sum(gmv_amount) as gmv
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2017-01-01'
+      and purchased_at_sao_paulo < '2018-01-01'
+    group by 1
+
+)
+
+select
+    month,
+    gmv,
+    (gmv - lag(gmv) over (order by month))
+        / lag(gmv) over (order by month) as mom_growth_rate
+from monthly_gmv
+order by month;",Time Series,Hard,MoM growth requires window function; GMV definition; Jan 2017 onward
+30,What percentage of total GMV comes from the top 10% of sellers?,"with seller_gmv as (
+
+    select
+        seller_id,
+        sum(gmv_amount) as gmv
+    from fct_order_items
+    where is_completed
+    group by seller_id
+
+),
+
+ranked_sellers as (
+
+    select
+        *,
+        ntile(10) over (order by gmv desc) as seller_decile
+    from seller_gmv
+
+)
+
+select
+    sum(case when seller_decile = 1 then gmv else 0 end)
+        * 100.0
+        / sum(gmv) as top_10_percent_gmv_share
+from ranked_sellers;",Ratio,Hard,Seller concentration / Pareto analysis; percentile bucketing
+31,What is the repeat purchase rate?,"select
+    avg(case when is_repeat_buyer then 1.0 else 0.0 end) as repeat_purchase_rate
+from dim_customers;",Ratio,Hard,Must use customer_unique_id; repeat = 2+ completed orders; actual answer ~3.1%
+32,Which categories grew the most from the first half of 2017 to the second half?,"with category_halves as (
+    select
+        product_category_name,
+        sum(case when purchased_at_sao_paulo >= '2017-01-01' and purchased_at_sao_paulo < '2017-07-01' then gmv_amount else 0 end) as h1_gmv,
+        sum(case when purchased_at_sao_paulo >= '2017-07-01' and purchased_at_sao_paulo < '2018-01-01' then gmv_amount else 0 end) as h2_gmv
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2017-01-01'
+      and purchased_at_sao_paulo < '2018-01-01'
+    group by 1
+)
+select
+    product_category_name,
+    h1_gmv,
+    h2_gmv,
+    (h2_gmv - h1_gmv) / h1_gmv as growth_rate
+from category_halves
+where h1_gmv > 0
+order by growth_rate desc;
+
+",Time Series,Hard,Period comparison by category; H1 vs H2; English category names; growth rate
+33,What was the average carrier handoff time by seller state for the top 10 states by volume?,"with seller_volume as (
+
+    select
+        seller_state,
+        count(*) as item_count
+    from fct_order_items
+    where is_completed
+    group by seller_state
+    order by item_count desc
+    limit 10
+
+)
+
+select
+    oi.seller_state,
+    avg(o.carrier_handoff_days) as average_handoff_days
+from fct_order_items oi
+join fct_orders o
+    on oi.order_id = o.order_id
+join seller_volume sv
+    on oi.seller_state = sv.seller_state
+where o.is_delivered
+group by oi.seller_state
+order by average_handoff_days;",Multi-metric,Hard,Handoff = delivered_carrier_date minus approved_at; ranking plus aggregation
+34,For late deliveries what was the average number of days past the estimated date by customer region?,"select
+    customer_region,
+    avg(days_late) as average_days_late
+from fct_orders
+where is_late
+group by customer_region
+order by average_days_late desc;",Multi-metric,Hard,Late = delivered after estimated; regional grouping; date difference in days
+35,What was the CSAT trend by quarter split by intra-state and inter-state deliveries?,"select
+    date_trunc('quarter', o.purchased_at_sao_paulo) as quarter,
+    case
+        when oi.is_intra_state then 'Intra-state'
+        else 'Inter-state'
+    end as shipment_type,
+    avg(case when r.is_positive_review then 1.0 else 0.0 end) as csat
+from fct_orders o
+join fct_order_items oi
+    on o.order_id = oi.order_id
+join fct_order_reviews r
+    on o.order_id = r.order_id
+where o.is_completed
+group by 1, 2
+order by 1, 2;",Multi-metric,Hard,CSAT definition + delivery geography segmentation + quarterly time series
+36,Which regions are growing fastest? Show quarter-over-quarter GMV growth by region for 2017.,"with quarterly_gmv as (
+
+    select
+        customer_region,
+        date_trunc('quarter', purchased_at_sao_paulo) as quarter,
+        sum(gmv_amount) as gmv
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2017-01-01'
+      and purchased_at_sao_paulo < '2018-01-01'
+    group by 1, 2
+
+)
+
+select
+    customer_region,
+    quarter,
+    gmv,
+    (
+        gmv - lag(gmv) over (
+            partition by customer_region
+            order by quarter
+        )
+    )
+    /
+    lag(gmv) over (
+        partition by customer_region
+        order by quarter
+    ) as qoq_growth_rate
+from quarterly_gmv
+order by customer_region, quarter;",Time Series,Hard,Regional grouping + QoQ growth + comparative ranking across regions
+37,How did Black Friday 2017 (November) compare to the surrounding months October and December in GMV and order count and CSAT?,"with monthly_metrics as (
+
+    select
+        date_trunc('month', oi.purchased_at_sao_paulo) as month,
+        sum(oi.gmv_amount) as gmv,
+        count(distinct oi.order_id) as order_count,
+        avg(case when r.is_positive_review then 1.0 else 0.0 end) as csat
+    from fct_order_items oi
+    left join fct_order_reviews r
+        on oi.order_id = r.order_id
+    where oi.is_completed
+      and oi.purchased_at_sao_paulo >= '2017-10-01'
+      and oi.purchased_at_sao_paulo < '2018-01-01'
+    group by 1
+
+)
+
+select *
+from monthly_metrics
+order by month;",Multi-metric,Hard,Seasonality awareness; multiple metrics; Black Friday context
+38,Can you predict what our GMV will be in Q1 2019?,,Out of Scope,Easy,Agent should decline: forecasting outside analytical scope
+39,What is the profit margin by product category?,,Out of Scope,Easy,Agent should decline: no cost or margin data in dataset
+40,What is the conversion rate from page views to purchases?,,Out of Scope,Easy,Agent should decline: no web traffic data in dataset

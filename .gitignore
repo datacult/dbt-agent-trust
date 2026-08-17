@@ -13,3 +13,6 @@ agent/agent_outputs/
 .vscode/
 .idea/
 .DS_Store
+.logs/
+
+/logs/

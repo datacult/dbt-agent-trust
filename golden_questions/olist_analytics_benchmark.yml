@@ -1,0 +1,988 @@
+- id: 1
+  question: What was total GMV for Q1 2018?
+  category: Aggregation
+  difficulty: Easy
+  business_rule_tested: 'GMV definition: SUM(price) on completed orders only, excludes freight'
+  expected_sql: |-
+    select
+        sum(gmv_amount) as total_gmv
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2018-01-01'
+      and purchased_at_sao_paulo < '2018-04-01';
+  expected_answer: 2766044.1899997615 (2.77 million)
+
+- id: 2
+  question: How many completed orders did we have in January 2018?
+  category: Aggregation
+  difficulty: Easy
+  business_rule_tested: Completed order status filter (delivered + shipped + processing + invoiced + approved)
+  expected_sql: |-
+    select
+        count(is_completed) as completed_orders
+    from fct_orders
+    where is_completed
+      and purchased_at_sao_paulo >= '2018-01-01'
+      and purchased_at_sao_paulo < '2018-02-01';
+  expected_answer: 7191
+
+- id: 3
+  question: What was the average order value in Q4 2017?
+  category: Aggregation
+  difficulty: Easy
+  business_rule_tested: AOV = GMV / distinct order count, not item count
+  expected_sql: |-
+    select
+                sum(gmv_amount) / count(distinct order_id) as average_order_value
+            from fct_order_items
+            where is_completed
+              and purchased_at_sao_paulo >= '2017-10-01'
+              and purchased_at_sao_paulo < '2018-01-01';
+  expected_answer: 136.8222578
+
+- id: 4
+  question: What were the top 10 product categories by GMV in 2017?
+  category: Ranking
+  difficulty: Easy
+  business_rule_tested: English category names via translation table; GMV not TOV
+  expected_sql: |-
+    select
+        product_category_name,
+        sum(gmv_amount) as gmv
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2017-01-01'
+      and purchased_at_sao_paulo < '2018-01-01'
+    group by product_category_name
+    order by gmv desc
+    limit 10;
+  expected_answer: 'product_category_name │        gmv         │
+│        varchar        │       double       │
+├───────────────────────┼────────────────────┤
+│ bed_bath_table        │  497970.9400000212 │
+│ watches_gifts         │ 486519.02000000275 │
+│ health_beauty         │  481142.7300000025 │
+│ sports_leisure        │ 447546.59000000864 │
+│ computers_accessories │ 400490.61000000394 │
+│ cool_stuff            │  388971.9799999974 │
+│ furniture_decor       │ 336272.25999999995 │
+│ toys                  │ 305991.36999999563 │
+│ garden_tools          │ 265131.72999999457 │
+│ auto                  │ 238545.03999999724'
+
+- id: 5
+  question: How many active sellers did we have in Q1 2018?
+  category: Aggregation
+  difficulty: Easy
+  business_rule_tested: Active = at least 1 completed order in the period
+  expected_sql: |-
+    select
+        count(distinct seller_id) as active_sellers
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2018-01-01'
+      and purchased_at_sao_paulo < '2018-04-01';
+  expected_answer: 1371
+
+- id: 6
+  question: What was the CSAT score for March 2018?
+  category: Ratio
+  difficulty: Easy
+  business_rule_tested: CSAT = % of reviews scoring 4 or 5, not average review score
+  expected_sql: |-
+    select
+                avg(case when is_positive_review then 1.0 else 0.0 end) as csat
+            from fct_order_reviews
+            where is_completed
+              and purchased_at >= '2018-03-01'
+              and purchased_at < '2018-04-01';
+  expected_answer: '─────────────────┐
+│       csat        │
+│      double       │
+├───────────────────┤
+│ 0.682855143456963'
+
+- id: 7
+  question: What percentage of orders were paid with boleto in 2017?
+  category: Ratio
+  difficulty: Easy
+  business_rule_tested: Payment type distribution; completed orders
+  expected_sql: |-
+    select
+                count(distinct case when payment_type = 'boleto' then order_id end)
+                * 100.0
+                / count(distinct order_id) as boleto_order_percentage
+            from fct_order_payments
+            where is_completed
+              and purchased_at >= '2017-01-01'
+              and purchased_at < '2018-01-01';
+  expected_answer: 21.050140845070423 or 21%
+
+- id: 8
+  question: How many unique customers placed an order in 2018?
+  category: Aggregation
+  difficulty: Easy
+  business_rule_tested: Must use customer_unique_id not customer_id
+  expected_sql: |-
+    select
+                count(distinct customer_unique_id) as unique_customers
+            from fct_orders
+            where is_completed
+              and purchased_at_sao_paulo >= '2018-01-01'
+              and purchased_at_sao_paulo < '2019-01-01';
+  expected_answer: 52336
+
+- id: 9
+  question: What was our best month by GMV in 2017?
+  category: Ranking
+  difficulty: Easy
+  business_rule_tested: GMV definition; should surface November (Black Friday)
+  expected_sql: |-
+    select
+        date_trunc('month', purchased_at_sao_paulo) as month,
+        sum(gmv_amount) as gmv
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2017-01-01'
+      and purchased_at_sao_paulo < '2018-01-01'
+    group by 1
+    order by gmv desc
+    limit 1;
+  expected_answer: 2017-11-01 00:00:00 │ 1003862.140000038
+
+- id: 10
+  question: How many orders were canceled in 2017?
+  category: Filtered Query
+  difficulty: Easy
+  business_rule_tested: Status spelled 'canceled' (single L) in data
+  expected_sql: |-
+    select
+                count(*) as canceled_orders
+            from fct_orders
+            where is_canceled
+              and purchased_at_sao_paulo >= '2017-01-01'
+              and purchased_at_sao_paulo < '2018-01-01';
+  expected_answer: 265
+
+- id: 11
+  question: What is the total freight customers paid in 2017?
+  category: Aggregation
+  difficulty: Easy
+  business_rule_tested: SUM(freight_value); completed orders; distinct from GMV
+  expected_sql: |-
+    select
+                sum(freight_amount) as total_freight
+            from fct_order_items
+            where is_completed
+              and purchased_at_sao_paulo >= '2017-01-01'
+              and purchased_at_sao_paulo < '2018-01-01';
+  expected_answer: 982076.97
+
+- id: 12
+  question: What was total GMV by region for 2017?
+  category: Aggregation
+  difficulty: Medium
+  business_rule_tested: 'Regional grouping: states mapped to Southeast/South/Northeast/Central-West/North'
+  expected_sql: |-
+    select
+        customer_region,
+        sum(gmv_amount) as gmv
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2017-01-01'
+      and purchased_at_sao_paulo < '2018-01-01'
+    group by customer_region
+    order by gmv desc;
+  expected_answer: 'customer_region │        gmv         │
+│     varchar     │       double       │
+├─────────────────┼────────────────────┤
+│ Southeast       │ 3928252.8399998588 │
+│ South           │  883109.4700000322 │
+│ Northeast       │  727732.5100000143 │
+│ Central-West    │ 401379.61000000226 │
+│ North           │  168017.8399999987'
+
+- id: 13
+  question: How many new customers did we acquire each month in 2017?
+  category: Time Series
+  difficulty: Medium
+  business_rule_tested: New = first order by customer_unique_id falls in that month
+  expected_sql: |-
+    select
+        date_trunc('month', first_purchased_at) as month,
+        count(*) as new_customers
+    from dim_customers
+    where first_purchased_at >= '2017-01-01'
+      and first_purchased_at < '2018-01-01'
+    group by 1
+    order by 1;
+  expected_answer: '─────────────────────┬───────────────┐
+│        month        │ new_customers │
+│      timestamp      │     int64     │
+├─────────────────────┼───────────────┤
+│ 2017-01-01 00:00:00 │           764 │
+│ 2017-02-01 00:00:00 │          1752 │
+│ 2017-03-01 00:00:00 │          2636 │
+│ 2017-04-01 00:00:00 │          2352 │
+│ 2017-05-01 00:00:00 │          3596 │
+│ 2017-06-01 00:00:00 │          3139 │
+│ 2017-07-01 00:00:00 │          3894 │
+│ 2017-08-01 00:00:00 │          4184 │
+│ 2017-09-01 00:00:00 │          4130 │
+│ 2017-10-01 00:00:00 │          4470 │
+│ 2017-11-01 00:00:00 │          7304 │
+│ 2017-12-01 00:00:00 │          5487 │
+└─────────────────────┴───────────────┘'
+
+- id: 14
+  question: What was our on-time delivery rate for Q1 2018?
+  category: Ratio
+  difficulty: Medium
+  business_rule_tested: On-time = delivered_customer_date <= estimated_delivery_date; delivered orders only with non-null dates
+  expected_sql: |-
+    select
+        avg(case when is_on_time then 1.0 else 0.0 end) as on_time_delivery_rate
+    from fct_orders
+    where is_delivered
+      and purchased_at_sao_paulo >= '2018-01-01'
+      and purchased_at_sao_paulo < '2018-04-01';
+  expected_answer: 0.8541868579
+
+- id: 15
+  question: What was the week-over-week GMV for January 2018?
+  category: Time Series
+  difficulty: Medium
+  business_rule_tested: Week starts Monday (ISO 8601); timezone conversion to America/Sao_Paulo
+  expected_sql: |-
+    select
+        date_trunc('week', purchased_at_sao_paulo) as week_start,
+        sum(gmv_amount) as gmv
+    from fct_order_items
+    where is_completed
+      and purchased_at_sao_paulo >= '2018-01-01'
+      and purchased_at_sao_paulo < '2018-02-01'
+    group by 1
+    order by 1;
+  expected_answer: 'week_start      │        gmv         │
+│      timestamp      │       double       │
+├─────────────────────┼────────────────────┤
+│ 2018-01-01 00:00:00 │  183379.2299999975 │
+│ 2018-01-08 00:00:00 │ 238671.52999999578 │
+│ 2018-01-15 00:00:00 │ 221615.40999999671 │
+│ 2018-01-22 00:00:00 │  211685.3999999972 │
+│ 2018-01-29 00:00:00 │   90733.8000000001'
+
+- id: 16
+  question: What was the cancellation rate for the top 10 categories by order volume?
+  category: Ratio
+  difficulty: Medium
+  business_rule_tested: Cancel rate = canceled / (completed + canceled); exclude created and unavailable from denominator
+  expected_sql: |-
+    with top_categories as (
+    
+        select
+            product_category_name,
+            count(distinct order_id) as order_count
+        from fct_order_items
+        where order_status in ('approved', 'processing', 'invoiced', 'shipped', 'delivered', 'canceled')
+        group by 1
+        order by order_count desc
+        limit 10
+    
+    )
+    
+    select
+        oi.product_category_name,
+        count(distinct case when order_status = 'canceled' then order_id end) * 100.0
+            /
+        count(distinct order_id) as cancellation_rate
+    from fct_order_items oi
+    join top_categories tc
+      on oi.product_category_name = tc.product_category_name
+    where order_status in ('approved', 'processing', 'invoiced', 'shipped', 'delivered', 'canceled')
+    group by 1
+    order by cancellation_rate desc;
+  expected_answer: 'product_category_name │  cancellation_rate  │
+│        varchar        │       double        │
+├───────────────────────┼─────────────────────┤
+│ toys                  │   0.797735460627895 │
+│ housewares            │   0.628823929299796 │
+│ auto                  │  0.6160164271047228 │
+│ sports_leisure        │  0.6088082901554405 │
+│ computers_accessories │  0.5232471221408282 │
+│ health_beauty         │  0.4074241738343142 │
+│ telephony             │  0.3810431055013098 │
+│ furniture_decor       │   0.372150721042022 │
+│ watches_gifts         │ 0.35561877667140823 │
+│ bed_bath_table        │ 0.19114367633004142'
+
+- id: 17
+  question: What was average delivery time for intra-state versus inter-state orders in Q4 2017?
+  category: Multi-metric
+  difficulty: Medium
+  business_rule_tested: Intra-state = customer_state equals seller_state; delivery time in days; delivered orders only
+  expected_sql: |-
+    select
+    
+        case
+    
+            when is_intra_state then 'Intra-state'
+    
+            else 'Inter-state'
+    
+        end as shipment_type,
+    
+        avg(delivery_time_days) as average_delivery_days
+    
+    from fct_orders o
+    
+    left join fct_order_items oi
+    
+    on o.order_id = oi.order_id
+    
+    
+    
+    where is_delivered
+    
+      and o.purchased_at_sao_paulo >= '2017-10-01' 
+    
+      and o.purchased_at_sao_paulo < '2018-01-01' 
+    
+    group by 1;
+  expected_answer: 'shipment_type │ average_delivery_days │
+│    varchar    │        double         │
+├───────────────┼───────────────────────┤
+│ Intra-state   │     8.984219754529516 │
+│ Inter-state   │     16.83648233486943'
+
+- id: 18
+  question: What percentage of total GMV comes from the Southeast region?
+  category: Ratio
+  difficulty: Medium
+  business_rule_tested: Regional grouping (SP + RJ + MG + ES = Southeast); GMV not TOV
+  expected_sql: |-
+    select
+        sum(case when customer_region = 'Southeast' then gmv_amount else 0 end)
+        * 100.0
+        /
+        sum(gmv_amount) as southeast_gmv_percentage
+    from fct_order_items
+    where is_completed;
+  expected_answer: 65.37919794
+
+- id: 19
+  question: Which product categories had a dissatisfaction rate above 15% with at least 50 reviews?
+  category: Filtered Query
+  difficulty: Medium
+  business_rule_tested: Dissatisfaction = score 1 or 2; minimum threshold for reliability
+  expected_sql: |-
+    select
+        oi.product_category_name,
+        avg(case when r.is_negative_review then 1.0 else 0.0 end) * 100 as dissatisfaction_rate,
+        count(*) as review_count
+    from fct_order_reviews r
+    join fct_order_items oi
+      on r.order_id = oi.order_id
+    where r.is_completed
+    group by 1
+    having count(*) >= 50
+       and avg(case when r.is_negative_review then 1.0 else 0.0 end) > 0.15
+    order by dissatisfaction_rate desc;
+  expected_answer: 'product_category_name          │ dissatisfaction_rate │ review_count │
+│                 varchar                 │        double        │    int64     │
+├─────────────────────────────────────────┼──────────────────────┼──────────────┤
+│ fashion_male_clothing                   │   27.692307692307693 │          130 │
+│ office_furniture                        │   26.097271648873072 │         1686 │
+│ fixed_telephony                         │    24.71042471042471 │          259 │
+│ uncategorized                           │   21.668742216687424 │         1606 │
+│ audio                                   │   21.666666666666668 │          360 │
+│ home_confort                            │   20.229885057471265 │          435 │
+│ construction_tools_safety               │   20.212765957446805 │          188 │
+│ furniture_decor                         │   19.119951778179626 │         8295 │
+│ bed_bath_table                          │    18.88659052073028 │        11119 │
+│ computers_accessories                   │   18.206278026905828 │         7805 │
+│ fashio_female_clothing                  │                 18.0 │           50 │
+│ furniture_living_room                   │                 18.0 │          500 │
+│ art                                     │    17.96116504854369 │          206 │
+│ home_construction                       │   17.833333333333336 │          600 │
+│ fashion_underwear_beach                 │   17.692307692307693 │          130 │
+│ air_conditioning                        │    17.24137931034483 │          290 │
+│ telephony                               │   16.618529215729836 │         4501 │
+│ furniture_bedroom                       │   16.363636363636363 │          110 │
+│ baby                                    │   16.192994051553207 │         3026 │
+│ costruction_tools_garden                │   16.101694915254235 │          236 │
+│ agro_industry_and_commerce              │   16.037735849056602 │          212 │
+│ watches_gifts                           │    16.00337268128162 │         5930 │
+│ garden_tools                            │   15.777262180974477 │         4310 │
+│ electronics                             │     15.4548776032152 │         2737 │
+│ kitchen_dining_laundry_garden_furniture │   15.162454873646208 │          277 │
+│ housewares                              │   15.124709976798146 │         6896 │
+│ cine_photo                              │   15.068493150684931 │           73 │
+└─────────────────────────────────────────┴──────────────────────┴──────────────'
+
+- id: 20
+  question: What was the average number of installments for credit card orders above R$500?
+  category: Filtered Query
+  difficulty: Medium
+  business_rule_tested: Filter to credit_card payment type only; order value threshold on item price
+  expected_sql: |-
+    with order_values as (
+    
+        select
+            order_id,
+            sum(gmv_amount) as order_value
+        from fct_order_items
+        where is_completed
+        group by 1
+    
+    )
+    
+    select
+        avg(payment_installments) as average_installments
+    from fct_order_payments p
+    join order_values o
+      on p.order_id = o.order_id
+    where p.is_completed
+      and p.payment_type = 'credit_card'
+      and o.order_value > 500;
+  expected_answer: 7.216899534
+
+- id: 21
+  question: What was monthly GMV and order count for Health and Beauty in 2017?
+  category: Time Series
+  difficulty: Medium
+  business_rule_tested: 'Department grouping: Health and Beauty = health_beauty + perfumery + diapers_and_hygiene'
+  expected_sql: null
+  expected_answer: null
+
+- id: 22
+  question: What is the freight ratio by region?
+  category: Ratio
+  difficulty: Medium
+  business_rule_tested: Freight ratio = SUM(freight_value) / SUM(price); regional grouping
+  expected_sql: |-
+    select
+        customer_region,
+        sum(freight_amount) / sum(gmv_amount) as freight_ratio
+    from fct_order_items
+    where is_completed
+    group by customer_region
+    order by freight_ratio desc;
+  expected_answer: 'customer_region │    freight_ratio    │
+│     varchar     │       double        │
+├─────────────────┼─────────────────────┤
+│ North           │ 0.22740513078110366 │
+│ Northeast       │ 0.21737876266096792 │
+│ Central-West    │ 0.17628552679987258 │
+│ South           │ 0.17620539656452922 │
+│ Southeast       │ 0.15159188610917934'
+
+- id: 23
+  question: What was the review coverage rate by quarter in 2017?
+  category: Ratio
+  difficulty: Medium
+  business_rule_tested: Review coverage = orders with at least one review / total completed orders
+  expected_sql: |-
+    select
+        date_trunc('quarter', o.purchased_at_sao_paulo) as quarter,
+        count(distinct r.order_id) * 100.0
+            / count(distinct o.order_id) as review_coverage_rate
+    from fct_orders o
+    left join fct_order_reviews r
+        on o.order_id = r.order_id
+    where o.is_completed
+      and o.purchased_at_sao_paulo >= '2017-01-01'
+      and o.purchased_at_sao_paulo < '2018-01-01'
+    group by 1
+    order by 1;
+  expected_answer: 'quarter       │ review_coverage_rate │
+│      timestamp      │        double        │
+├─────────────────────┼──────────────────────┤
+│ 2017-01-01 00:00:00 │     99.2390243902439 │
+│ 2017-04-01 00:00:00 │    99.18681556977123 │
+│ 2017-07-01 00:00:00 │    99.20469151670952 │
+│ 2017-10-01 00:00:00 │     99.1182661129757'
+
+- id: 24
+  question: What percentage of orders had multiple items?
+  category: Ratio
+  difficulty: Medium
+  business_rule_tested: Multi-item = order_item_id count > 1 per order; completed orders
+  expected_sql: |-
+    with order_item_counts as (
+    
+        select
+            order_id,
+            count(*) as item_count
+        from fct_order_items
+        where is_completed
+        group by order_id
+    
+    )
+    
+    select
+        count(case when item_count > 1 then 1 end) * 100.0
+            / count(*) as multi_item_order_percentage
+    from order_item_counts;
+  expected_answer: 'multi_item_order_percentage │
+│           double            │
+├─────────────────────────────┤
+│           9.940019755801995'
+
+- id: 25
+  question: How does average delivery time vary across the five regions?
+  category: Aggregation
+  difficulty: Medium
+  business_rule_tested: Regional grouping; delivery time = delivered minus purchased; delivered orders
+  expected_sql: |-
+    select
+        customer_region,
+        avg(delivery_time_days) as average_delivery_days
+    from fct_orders
+    where is_delivered
+    group by customer_region
+    order by average_delivery_days desc;
+  expected_answer: 'customer_region │ average_delivery_days │
+│     varchar     │        double         │
+├─────────────────┼───────────────────────┤
+│ North           │    22.537861915367483 │
+│ Northeast       │    19.948695267580717 │
+│ Central-West    │    14.950568990042674 │
+│ South           │     13.97994642727865 │
+│ Southeast       │    10.688290302599972'
+
+- id: 26
+  question: What was total order value including freight for Electronics in Q2 2017?
+  category: Aggregation
+  difficulty: Medium
+  business_rule_tested: TOV not GMV; Electronics department grouping
+  expected_sql: |-
+    select
+        sum(tov_amount) as total_order_value
+    from fct_order_items
+    where is_completed
+      and product_department = 'Electronics'
+      and purchased_at_sao_paulo >= '2017-04-01'
+      and purchased_at_sao_paulo < '2017-07-01';
+  expected_answer: 'total_order_value  │
+│       double       │
+├────────────────────┤
+│ 12974.660000000002'
+
+- id: 27
+  question: What is the average order value by day of week? Is there a pattern?
+  category: Multi-metric
+  difficulty: Medium
+  business_rule_tested: Day of week from purchase timestamp; timezone conversion to Sao Paulo; AOV definition
+  expected_sql: |-
+    with order_values as (
+    
+        select
+            order_id,
+            date_part('dow', purchased_at_sao_paulo) as day_of_week,
+            sum(gmv_amount) as order_value
+        from fct_order_items
+        where is_completed
+        group by 1, 2
+    
+    )
+    
+    select
+        day_of_week,
+        avg(order_value) as average_order_value
+    from order_values
+    group by day_of_week
+    order by day_of_week;
+  expected_answer: 'day_of_week │ average_order_value │
+│    int64    │       double        │
+├─────────────┼─────────────────────┤
+│           0 │   132.7798182124227 │
+│           1 │  138.55918651910417 │
+│           2 │  137.44290928576115 │
+│           3 │   136.6564295986421 │
+│           4 │   137.4489318336759 │
+│           5 │  139.02410055785106 │
+│           6 │   139.8111739943875 │'
+
+- id: 28
+  question: What was the average review score for the top 5 and bottom 5 product categories by GMV?
+  category: Multi-metric
+  difficulty: Medium
+  business_rule_tested: Requires ranking by GMV then computing avg score for those sets; English names
+  expected_sql: |-
+    with category_gmv as (
+    
+        select
+            product_category_name,
+            sum(gmv_amount) as gmv
+        from fct_order_items
+        where is_completed
+        group by 1
+    
+    ),
+    
+    ranked_categories as (
+    
+        select
+            *,
+            rank() over (order by gmv desc) as top_rank,
+            rank() over (order by gmv asc) as bottom_rank
+        from category_gmv
+    
+    )
+    
+    select
+        rc.product_category_name,
+        avg(r.review_score) as average_review_score
+    from ranked_categories rc
+    join fct_order_items oi
+        on rc.product_category_name = oi.product_category_name
+    join fct_order_reviews r
+        on oi.order_id = r.order_id
+    where rc.top_rank <= 5
+       or rc.bottom_rank <= 5
+    group by rc.product_category_name
+    order by average_review_score desc;
+  expected_answer: 'product_category_name   │ average_review_score │
+│          varchar          │        double        │
+├───────────────────────────┼──────────────────────┤
+│ cds_dvds_musicals         │    4.642857142857143 │
+│ fashion_childrens_clothes │                  4.5 │
+│ flowers                   │    4.419354838709677 │
+│ health_beauty             │   4.1427682737169516 │
+│ sports_leisure            │    4.107986111111111 │
+│ watches_gifts             │    4.019159663865546 │
+│ computers_accessories     │   3.9308192126385526 │
+│ bed_bath_table            │   3.8956631049654304 │
+│ home_comfort_2            │   3.6296296296296298 │
+│ security_and_services     │                  2.5 │
+└───────────────────────────┴─────────────────────'
+
+- id: 29
+  question: What was the month-over-month GMV growth rate for 2017?
+  category: Time Series
+  difficulty: Hard
+  business_rule_tested: MoM growth requires window function; GMV definition; Jan 2017 onward
+  expected_sql: |-
+    with monthly_gmv as (
+    
+        select
+            date_trunc('month', purchased_at_sao_paulo) as month,
+            sum(gmv_amount) as gmv
+        from fct_order_items
+        where is_completed
+          and purchased_at_sao_paulo >= '2017-01-01'
+          and purchased_at_sao_paulo < '2018-01-01'
+        group by 1
+    
+    )
+    
+    select
+        month,
+        gmv,
+        (gmv - lag(gmv) over (order by month))
+            / lag(gmv) over (order by month) as mom_growth_rate
+    from monthly_gmv
+    order by month;
+  expected_answer: 'month        │        gmv         │    mom_growth_rate    │
+│      timestamp      │       double       │        double         │
+├─────────────────────┼────────────────────┼───────────────────────┤
+│ 2017-01-01 00:00:00 │ 120098.26999999955 │                  NULL │
+│ 2017-02-01 00:00:00 │ 245155.14999999615 │    1.0412879386189082 │
+│ 2017-03-01 00:00:00 │ 368430.31000000075 │    0.5028454837681628 │
+│ 2017-04-01 00:00:00 │  353619.0900000001 │ -0.040200872724072675 │
+│ 2017-05-01 00:00:00 │ 503673.36000000883 │   0.42433871429285314 │
+│ 2017-06-01 00:00:00 │ 430069.32000000536 │  -0.14613447095951665 │
+│ 2017-07-01 00:00:00 │  492041.8000000116 │     0.144098816441976 │
+│ 2017-08-01 00:00:00 │  571582.6100000143 │   0.16165457894024626 │
+│ 2017-09-01 00:00:00 │  618623.8900000163 │   0.08230005458003845 │
+│ 2017-10-01 00:00:00 │  659689.6300000147 │   0.06638240239961841 │
+│ 2017-11-01 00:00:00 │ 1005910.2200000382 │    0.5248234537202227 │
+│ 2017-12-01 00:00:00 │   739598.620000019 │   -0.2647468876496842'
+
+- id: 30
+  question: What percentage of total GMV comes from the top 10% of sellers?
+  category: Ratio
+  difficulty: Hard
+  business_rule_tested: Seller concentration / Pareto analysis; percentile bucketing
+  expected_sql: |-
+    with seller_gmv as (
+    
+        select
+            seller_id,
+            sum(gmv_amount) as gmv
+        from fct_order_items
+        where is_completed
+        group by seller_id
+    
+    ),
+    
+    ranked_sellers as (
+    
+        select
+            *,
+            ntile(10) over (order by gmv desc) as seller_decile
+        from seller_gmv
+    
+    )
+    
+    select
+        sum(case when seller_decile = 1 then gmv else 0 end)
+            * 100.0
+            / sum(gmv) as top_10_percent_gmv_share
+    from ranked_sellers;
+  expected_answer: 'top_10_percent_gmv_share │
+│          double          │
+├──────────────────────────┤
+│        67.50012012760179'
+
+- id: 31
+  question: What is the repeat purchase rate?
+  category: Ratio
+  difficulty: Hard
+  business_rule_tested: Must use customer_unique_id; repeat = 2+ completed orders; actual answer ~3.1%
+  expected_sql: |-
+    select
+        avg(case when is_repeat_buyer then 1.0 else 0.0 end) as repeat_purchase_rate
+    from dim_customers;
+  expected_answer: 'repeat_purchase_rate │
+│        double        │
+├──────────────────────┤
+│ 0.030042873792873792'
+
+- id: 32
+  question: Which categories grew the most from the first half of 2017 to the second half?
+  category: Time Series
+  difficulty: Hard
+  business_rule_tested: Period comparison by category; H1 vs H2; English category names; growth rate
+  expected_sql: null
+  expected_answer: null
+
+- id: 33
+  question: What was the average carrier handoff time by seller state for the top 10 states by volume?
+  category: Multi-metric
+  difficulty: Hard
+  business_rule_tested: Handoff = delivered_carrier_date minus approved_at; ranking plus aggregation
+  expected_sql: |-
+    with seller_volume as (
+    
+        select
+            seller_state,
+            count(*) as item_count
+        from fct_order_items
+        where is_completed
+        group by seller_state
+        order by item_count desc
+        limit 10
+    
+    )
+    
+    select
+        oi.seller_state,
+        avg(o.carrier_handoff_days) as average_handoff_days
+    from fct_order_items oi
+    join fct_orders o
+        on oi.order_id = o.order_id
+    join seller_volume sv
+        on oi.seller_state = sv.seller_state
+    where o.is_delivered
+    group by oi.seller_state
+    order by average_handoff_days;
+  expected_answer: 'seller_state │ average_handoff_days │
+│   varchar    │        double        │
+├──────────────┼──────────────────────┤
+│ PE           │   1.6786516853932585 │
+│ GO           │   2.1692913385826773 │
+│ RJ           │   2.4123799359658484 │
+│ DF           │    2.481313703284258 │
+│ SC           │    2.589647411852963 │
+│ MG           │    2.739509473439498 │
+│ SP           │   2.7494592187301183 │
+│ BA           │   2.7868589743589745 │
+│ RS           │   2.9603503918856617 │
+│ PR           │   2.9660577489687685 │
+└──────────────┴──────────────────────'
+
+- id: 34
+  question: For late deliveries what was the average number of days past the estimated date by customer region?
+  category: Multi-metric
+  difficulty: Hard
+  business_rule_tested: Late = delivered after estimated; regional grouping; date difference in days
+  expected_sql: |-
+    select
+        customer_region,
+        avg(days_late) as average_days_late
+    from fct_orders
+    where is_late
+    group by customer_region
+    order by average_days_late desc;
+  expected_answer: 'customer_region │ average_days_late  │
+│     varchar     │       double       │
+├─────────────────┼────────────────────┤
+│ North           │ 11.806818181818182 │
+│ Northeast       │ 11.026234567901234 │
+│ Southeast       │  8.548256285482562 │
+│ Central-West    │  7.725446428571429 │
+│ South           │  7.600616016427105'
+
+- id: 35
+  question: What was the CSAT trend by quarter split by intra-state and inter-state deliveries?
+  category: Multi-metric
+  difficulty: Hard
+  business_rule_tested: CSAT definition + delivery geography segmentation + quarterly time series
+  expected_sql: |-
+    select
+        date_trunc('quarter', o.purchased_at_sao_paulo) as quarter,
+        case
+            when oi.is_intra_state then 'Intra-state'
+            else 'Inter-state'
+        end as shipment_type,
+        avg(case when r.is_positive_review then 1.0 else 0.0 end) as csat
+    from fct_orders o
+    join fct_order_items oi
+        on o.order_id = oi.order_id
+    join fct_order_reviews r
+        on o.order_id = r.order_id
+    where o.is_completed
+    group by 1, 2
+    order by 1, 2;
+  expected_answer: 'quarter       │ shipment_type │        csat        │
+│      timestamp      │    varchar    │       double       │
+├─────────────────────┼───────────────┼────────────────────┤
+│ 2016-07-01 00:00:00 │ Inter-state   │                0.0 │
+│ 2016-10-01 00:00:00 │ Inter-state   │ 0.6763485477178424 │
+│ 2016-10-01 00:00:00 │ Intra-state   │               0.67 │
+│ 2017-01-01 00:00:00 │ Inter-state   │ 0.7615176151761518 │
+│ 2017-01-01 00:00:00 │ Intra-state   │ 0.7677383592017738 │
+│ 2017-04-01 00:00:00 │ Inter-state   │ 0.7743457743457743 │
+│ 2017-04-01 00:00:00 │ Intra-state   │  0.780699133552435 │
+│ 2017-07-01 00:00:00 │ Inter-state   │  0.787514622992662 │
+│ 2017-07-01 00:00:00 │ Intra-state   │ 0.8160200250312891 │
+│ 2017-10-01 00:00:00 │ Inter-state   │ 0.7134954913995605 │
+│ 2017-10-01 00:00:00 │ Intra-state   │ 0.7669400086318515 │
+│ 2018-01-01 00:00:00 │ Inter-state   │ 0.6506047349459598 │
+│ 2018-01-01 00:00:00 │ Intra-state   │ 0.7648176743081126 │
+│ 2018-04-01 00:00:00 │ Inter-state   │ 0.7657729855748215 │
+│ 2018-04-01 00:00:00 │ Intra-state   │ 0.8145490672259631 │
+│ 2018-07-01 00:00:00 │ Inter-state   │ 0.8124167977732059 │
+│ 2018-07-01 00:00:00 │ Intra-state   │ 0.8143651997976732'
+
+- id: 36
+  question: Which regions are growing fastest? Show quarter-over-quarter GMV growth by region for 2017.
+  category: Time Series
+  difficulty: Hard
+  business_rule_tested: Regional grouping + QoQ growth + comparative ranking across regions
+  expected_sql: |-
+    with quarterly_gmv as (
+    
+        select
+            customer_region,
+            date_trunc('quarter', purchased_at_sao_paulo) as quarter,
+            sum(gmv_amount) as gmv
+        from fct_order_items
+        where is_completed
+          and purchased_at_sao_paulo >= '2017-01-01'
+          and purchased_at_sao_paulo < '2018-01-01'
+        group by 1, 2
+    
+    )
+    
+    select
+        customer_region,
+        quarter,
+        gmv,
+        (
+            gmv - lag(gmv) over (
+                partition by customer_region
+                order by quarter
+            )
+        )
+        /
+        lag(gmv) over (
+            partition by customer_region
+            order by quarter
+        ) as qoq_growth_rate
+    from quarterly_gmv
+    order by customer_region, quarter;
+  expected_answer: 'customer_region │       quarter       │        gmv         │   qoq_growth_rate   │
+│     varchar     │      timestamp      │       double       │       double        │
+├─────────────────┼─────────────────────┼────────────────────┼─────────────────────┤
+│ Central-West    │ 2017-01-01 00:00:00 │  55333.67000000009 │                NULL │
+│ Central-West    │ 2017-04-01 00:00:00 │  79144.64000000009 │   0.430316116751337 │
+│ Central-West    │ 2017-07-01 00:00:00 │ 106717.65999999977 │  0.3483877114103956 │
+│ Central-West    │ 2017-10-01 00:00:00 │ 160183.63999999865 │  0.5010040512507394 │
+│ North           │ 2017-01-01 00:00:00 │  30273.59000000005 │                NULL │
+│ North           │ 2017-04-01 00:00:00 │  36184.10000000007 │ 0.19523650812473878 │
+│ North           │ 2017-07-01 00:00:00 │  47207.56000000006 │ 0.30464927965598065 │
+│ North           │ 2017-10-01 00:00:00 │  54352.59000000006 │ 0.15135351202222672 │
+│ Northeast       │ 2017-01-01 00:00:00 │  76107.22000000007 │                NULL │
+│ Northeast       │ 2017-04-01 00:00:00 │  155385.8099999992 │  1.0416697653652185 │
+│ Northeast       │ 2017-07-01 00:00:00 │   221116.339999997 │   0.423015010186568 │
+│ Northeast       │ 2017-10-01 00:00:00 │  275123.1399999973 │ 0.24424608330619535 │
+│ South           │ 2017-01-01 00:00:00 │ 119171.69999999978 │                NULL │
+│ South           │ 2017-04-01 00:00:00 │ 187586.68999999715 │  0.5740875560220883 │
+│ South           │ 2017-07-01 00:00:00 │  242447.5199999953 │  0.2924558773332958 │
+│ South           │ 2017-10-01 00:00:00 │ 333903.55999999976 │  0.3772199443409701 │
+│ Southeast       │ 2017-01-01 00:00:00 │ 452797.55000000633 │                NULL │
+│ Southeast       │ 2017-04-01 00:00:00 │  829060.5300000296 │   0.830973975013818 │
+│ Southeast       │ 2017-07-01 00:00:00 │  1064759.220000042 │ 0.28429611767913265 │
+│ Southeast       │ 2017-10-01 00:00:00 │ 1581635.5399998738 │ 0.48543962831316106 │
+└─────────────────┴─────────────────────┴────────────────────┴────────────────────'
+
+- id: 37
+  question: How did Black Friday 2017 (November) compare to the surrounding months October and December in GMV and order count and CSAT?
+  category: Multi-metric
+  difficulty: Hard
+  business_rule_tested: Seasonality awareness; multiple metrics; Black Friday context
+  expected_sql: |-
+    with monthly_metrics as (
+    
+        select
+            date_trunc('month', oi.purchased_at_sao_paulo) as month,
+            sum(oi.gmv_amount) as gmv,
+            count(distinct oi.order_id) as order_count,
+            avg(case when r.is_positive_review then 1.0 else 0.0 end) as csat
+        from fct_order_items oi
+        left join fct_order_reviews r
+            on oi.order_id = r.order_id
+        where oi.is_completed
+          and oi.purchased_at_sao_paulo >= '2017-10-01'
+          and oi.purchased_at_sao_paulo < '2018-01-01'
+        group by 1
+    
+    )
+    
+    select *
+    from monthly_metrics
+    order by month;
+  expected_answer: '─────────────────────┬───────────────────┬─────────────┬────────────────────┐
+│        month        │        gmv        │ order_count │        csat        │
+│      timestamp      │      double       │    int64    │       double       │
+├─────────────────────┼───────────────────┼─────────────┼────────────────────┤
+│ 2017-10-01 00:00:00 │ 663339.3500000156 │        4545 │ 0.7605317356300318 │
+│ 2017-11-01 00:00:00 │ 1013397.680000036 │        7429 │ 0.6977466084157278 │
+│ 2017-12-01 00:00:00 │ 742401.6000000202 │        5605 │ 0.7310738042445359'
+
+- id: 38
+  question: Can you predict what our GMV will be in Q1 2019?
+  category: Out of Scope
+  difficulty: Easy
+  business_rule_tested: 'Agent should decline: forecasting outside analytical scope'
+  expected_sql: null
+  expected_answer: null
+
+- id: 39
+  question: What is the profit margin by product category?
+  category: Out of Scope
+  difficulty: Easy
+  business_rule_tested: 'Agent should decline: no cost or margin data in dataset'
+  expected_sql: null
+  expected_answer: null
+
+- id: 40
+  question: What is the conversion rate from page views to purchases?
+  category: Out of Scope
+  difficulty: Easy
+  business_rule_tested: 'Agent should decline: no web traffic data in dataset'
+  expected_sql: null
+  expected_answer: null

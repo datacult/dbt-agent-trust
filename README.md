@@ -1,6 +1,6 @@
 # Building and Evaluating Trusted Data Agents on dbt
 
-A complete, open-source reference for building a governed analytics agent on the dbt semantic layer and evaluating whether its answers are trustworthy before they reach your stakeholders.
+A complete, open-source reference for building a governed analytics agent on a dbt **Agent Schema** and evaluating whether its answers are trustworthy before they reach your stakeholders.
 
 Built by [Data Culture](https://www.datacult.com) as part of the inaugural [dbt Champions](https://www.getdbt.com/community/dbt-champions) cohort.
 
@@ -20,13 +20,13 @@ This repo provides a working solution to the first problem and an honest, docume
 
 Two complementary halves, built by two dbt Champions, in one forkable repository:
 
-**The Metric Agent Playbook** [David Effiong](https://www.linkedin.com/in/david-effiong/): How to build a governed data agent on the dbt semantic layer, from semantic model design to connecting an LLM that queries governed metrics. The construction side.
+**The Metric Agent Playbook** [David Effiong](https://www.linkedin.com/in/david-effiong/): How to build a governed data agent on a dbt **Agent Schema** — modelling a warehouse into governed marts, then publishing the models, their column meanings, and the business rules into an in-warehouse `AGENTS` schema the agent reads to write trustworthy SQL. The construction side.
 
 **Trust by Design** [Opeyemi Fabiyi](https://www.linkedin.com/in/opeyemifabiyi/): How to evaluate whether that agent's answers are correct, using layered result comparison and an LLM-as-judge fallback. Plus an honest methodology for the interpretation layer that automated evaluation cannot reach. The verification side.
 
 One teaches how to build. The other teaches how to know it works. Together they cover the full lifecycle a practitioner needs.
 
-A third piece makes both halves runnable end to end: the agent layer connecting an LLM to the dbt semantic layer via MCP, built by [Joseph Ojo](https://www.linkedin.com/in/ojofemijoseph/). Without it, the playbook and the evaluation framework would have nothing to build on and nothing to test.
+A third piece makes both halves runnable end to end: the agent layer connecting an LLM to the `AGENTS` schema via an MCP server, built by [Joseph Ojo](https://www.linkedin.com/in/ojofemijoseph/). Without it, the playbook and the evaluation framework would have nothing to build on and nothing to test.
 
 ## Architecture
 
@@ -50,10 +50,9 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    2. SEMANTIC LAYER                             │
+│                    2. AGENT SCHEMA                             │
 │                                                                  │
-│  Metric definitions, dimensions, entities, relationships.        │
-│  MetricFlow YAML or dbt agent schema. The governed contract      │
+│  The AGENTS schema of context tables: the governed contract      │
 │  that defines what the agent is allowed to query and how.        │
 │                                                                  │
 │                                                                  │
@@ -69,7 +68,7 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
 │  Claude (or any LLM) + dbt MCP server                            │
 │       │                                                          │
 │       ▼                                                          │
-│  Queries governed metrics via the semantic layer                 │
+│  Reads the AGENTS schema and writes SQL on marts                 │
 │       │                                                          │
 │       ▼                                                          │
 │  Returns: answer + SQL + result                                  │
@@ -163,8 +162,13 @@ dbt-agent-trust/
 ├── dbt_project/                       THE METRIC AGENT PLAYBOOK (David)
 │   ├── models/
 │   │   ├── staging/                   Source cleanup and standardisation
-│   │   └── marts/                     Business-ready fact and dimension tables
-│   ├── semantic_layer/                Governed metrics, dimensions, entities
+│   │   ├── intermediate/              Business rules applied once (region, dept, dedup)
+│   │   └── marts/                     Business-ready fact and dimension tables (tagged 'agent')
+│   ├── macros/
+│   │   └── build_agents_schema.sql    Publishes marts + rules into the AGENTS schema
+│   ├── seeds/                          Committed Olist CSVs
+│   ├── olist_business_context.md       Metric defs, rules, scope boundaries -> agents.root
+│   ├── profiles.yml                    DuckDB target (no credentials)
 │   ├── tests/                         Data quality assertions
 │   ├── dbt_project.yml
 │   └── README.md                      Build guide: decisions, tradeoffs, patterns
@@ -209,8 +213,8 @@ dbt-agent-trust/
 
 ```bash
 # Clone
-git clone https://github.com/datacult/dbt-agent-evaluation.git
-cd dbt-agent-evaluation
+git clone https://github.com/datacult/dbt-agent-trust.git
+cd dbt-agent-trust
 
 # Set up environment
 uv venv && source .venv/bin/activate
@@ -256,7 +260,7 @@ Our goal is to provide a clear, forkable starting point that teaches the approac
 
 | Person | Role | Layers |
 |---|---|---|
-| **David Effiong** | dbt Champion, Data Culture | Data foundation, semantic layer, golden questions |
+| **David Effiong** | dbt Champion, Data Culture | Data foundation, Agent Schema, golden questions |
 | **Joseph Ojo** | Senior Engineer, Data Culture | Agent layer, MCP integration |
 | **Opeyemi Fabiyi** | dbt Champion, Data Culture | Evaluation framework, synthesis methodology, golden questions |
 
@@ -264,7 +268,7 @@ Our goal is to provide a clear, forkable starting point that teaches the approac
 
 This project is the joint Big Project from Data Culture's two members of the inaugural dbt Champions cohort and Joseph, a Senior Data Engineer at Data Culture:
 
-- **David Effiong**: *The Metric Agent Playbook*: building governed data agents on the dbt semantic layer
+- **David Effiong**: *The Metric Agent Playbook*: building governed data agents on a dbt Agent Schema
 - **Opeyemi Fabiyi**: *Trust by Design*: evaluating whether those agents are trustworthy
 
 Two halves of one system. Built together, published together.
