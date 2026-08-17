@@ -4,12 +4,27 @@ with products as (
 
 ),
 
-categorized as (
+named as (
 
     select
         product_id,
         product_category_name as product_category_name_pt,
         coalesce(product_category_name_english, 'uncategorized') as product_category_name,
+        product_weight_g,
+        product_length_cm,
+        product_height_cm,
+        product_width_cm,
+        product_photos_qty
+    from products
+
+),
+
+categorized as (
+
+    select
+        product_id,
+        product_category_name_pt,
+        product_category_name,
         case
             when product_category_name in (
                 'computers_accessories', 'electronics', 'computers',
@@ -53,13 +68,14 @@ categorized as (
             when product_category_name in ('stationery', 'party_supplies')
                 then 'Stationery & Party'
             else 'Other'
-        end as product_department,
+        end as product_department
+        ,
         product_weight_g,
         product_length_cm,
         product_height_cm,
         product_width_cm,
         product_photos_qty
-    from products
+    from named
 
 )
 
