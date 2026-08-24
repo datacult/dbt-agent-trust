@@ -142,7 +142,7 @@ Each layer has a dedicated technical article covering the decisions, trade-offs,
 
 ## Demo
 
-<video src="assets/demo.mp4" controls width="720"></video>
+https://github.com/user-attachments/assets/bb569139-2480-42f1-aebb-f5ded98926de
 
 ## Who this is for
 
