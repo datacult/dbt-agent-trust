@@ -2,41 +2,42 @@
 
 **Owner: Joseph Ojo**
 
-This layer connects a language model to the dbt semantic layer via MCP so it can answer natural language business questions against the governed data.
+This layer connects a configured language model to the governed Olist marts in
+DuckDB through MCP.
 
 ## What this layer does
 
 1. Takes a natural language question
-2. Sends it to Claude with the dbt MCP server available as a tool
-3. Claude uses the MCP tools to query the governed metrics and dimensions
-4. Captures the response (the answer, any SQL generated, the raw result)
-5. Writes the output to a structured file the evaluation layer can read
+2. Gives the configured model the generated contract and DuckDB query tool
+3. Restricts queries to the mart relations exposed in the contract
+4. Returns the answer, final SQL, canonical query result, and run metadata
 
 ## What this layer does NOT do
 
 - Evaluate whether the answer is correct (that is the evaluation layer's job)
-- Implement any custom agent logic beyond connecting Claude to the dbt MCP tools
-- Lock to a specific model (the config should make it easy to swap Claude for another model)
+- Expose staging, intermediate, or other non-mart relations
+- Lock to a specific model
 
 
 
 ## Output format
 
-Each question produces one JSON file in `agent_outputs/`:
+The evaluation runner writes one JSON record per question to `agent_outputs/`.
+The single-question CLI prints the same record to standard output.
 
 ```json
 {
   "question_id": "rev_001",
-  "question": "What was the total revenue last quarter?",
-  "model": "claude-sonnet-4-6",
+  "question": "What was total GMV?",
+  "model": "openai:gpt-5-nano",
   "timestamp": "2026-07-14T10:30:00Z",
-  "agent_response": "The total revenue last quarter was $1,234,567.",
-  "agent_sql": "SELECT SUM(revenue) FROM ...",
-  "agent_result": [{"total_revenue": 1234567}],
+  "agent_response": "Total GMV was 1,234,567.",
+  "agent_sql": "select sum(gmv_amount)  as  total_gmv from fct_order_items where is_completed",
+  "agent_result": [{"total_gmv": 1234567}],
   "tool_calls": [
-    {"tool": "query_metric", "input": {"metric": "total_revenue", "grain": "quarter"}, "output": "..."}
+    {"tool": "execute_query", "input": {"sql": "select sum(gmv_amount)  as  total_gmv from fct_order_items where is_completed"}, "output": "..."}
   ],
-  "n_turns": 1,
+  "n_requests": 1,
   "metric_queried": "total_revenue",
   "declined_or_clarified": false,
   "tokens": 48339,
@@ -51,17 +52,25 @@ The evaluation layer reads `agent_sql` and `agent_result`. Everything else is me
 
 ## Setup
 
-1. Ensure the dbt project is built and the semantic layer is serving
-2. Configure the dbt MCP server (see [dbt MCP docs](https://github.com/dbt-labs/dbt-mcp))
-3. Copy `config.yaml.example` to `config.yaml` and set your model and MCP server details
-4. Set `ANTHROPIC_API_KEY` in the root `.env` file
+1. Build the dbt project so the marts and `agents` schema tables exist in DuckDB.
+2. Copy `config.yaml.example` to `config.yaml` and set the model, DuckDB path,
+   and MCP executable as needed.
+3. Set the matching provider API key in the root `.env` file. See `.env.example`.
 
 ## Usage
 
 ```bash
-# Single question
-python agent.py "What was the total revenue last quarter?"
+# Single question (this layer only answers one question at a time)
+python -m agent.custom_orchestrator.agent "What was the total revenue last quarter?"
+```
 
-# All golden questions
-python run_golden_set.py
+Running the whole golden set is an evaluation-orchestration concern and lives in the
+evaluation layer: `python -m evaluation.run_golden_set` (see `evaluation/README.md`).
+It imports this layer's public API (`build_agent`, `answer_with`) and writes one
+output JSON record per question for evaluation.
+
+To expose the agent to an MCP client over stdio, run:
+
+```bash
+python -m agent.custom_orchestrator.mcp_server
 ```

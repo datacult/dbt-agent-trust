@@ -1,0 +1,23 @@
+# Custom orchestrator config. Copy to config.yaml to override defaults.
+#   cp config.yaml.example config.yaml
+# Every key is optional; omit a key to keep the default in config.py.
+
+# LLM used by the agent (provider:model). Default: anthropic:claude-haiku-4-5
+model: anthropic:claude-haiku-4-5
+
+# Absolute path to the built DuckDB file. Default: <repo>/dbt_project/olist.duckdb
+# duckdb_path: /absolute/path/to/olist.duckdb
+
+# Where per-question JSON outputs are written. Default: ./agent_outputs
+# output_dir: ./agent_outputs
+
+# DuckDB MCP executable. The server always receives duckdb_path from above, so
+# validation, MCP queries, and final result queries use the same database.
+# mcp_command: uvx
+
+# Max model requests per question (runaway-loop guard). Default: 12
+# max_requests: 12
+
+# Retries allowed when a tool call (e.g. bad SQL) errors, so the model can
+# self-correct before the run fails. Default: 2
+# max_sql_retries: 2
