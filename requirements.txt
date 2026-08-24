@@ -5,4 +5,4 @@ duckdb
 pydantic-ai-slim[anthropic,openai,mcp]
 mcp               
 python-dotenv     
-pyyaml            
+pyyaml       

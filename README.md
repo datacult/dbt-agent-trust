@@ -28,6 +28,17 @@ One teaches how to build. The other teaches how to know it works. Together they 
 
 A third piece makes both halves runnable end to end: the agent layer connecting an LLM to the `AGENTS` schema via an MCP server, built by [Joseph Ojo](https://www.linkedin.com/in/ojofemijoseph/). Without it, the playbook and the evaluation framework would have nothing to build on and nothing to test.
 
+## Read the full write-ups
+
+Each layer has a dedicated technical article covering the decisions, trade-offs, and lessons learned:
+
+| Article | Author | Covers |
+|---|---|---|
+| [The Metric Agent Playbook: Building a Governed Data Agent on dbt Agent Schema](https://www.datacult.com/post/TODO) | David Effiong | Why Agent Schema over the Semantic Layer, how the dbt project is structured, the AGENTS schema design, and how to apply it to your own project |
+| [Making Agents Evaluable: Instrumenting an MCP-Connected Data Agent for Trust](https://www.datacult.com/post/TODO) | Joseph Ojo | Connecting an LLM to a governed semantic layer via MCP, designing the output contract for downstream evaluation, and what to instrument |
+| [If You Can't Measure It, Don't Ship It](https://www.datacult.com/post/if-you-cant-measure-it-dont-ship-it) | Opeyemi Fabiyi | Why evaluation matters, how to measure accuracy before deployment, and the methodology for agent accuracy evaluation |
+| [Everything You Need to Know: Evaluating Analytics Agents](https://www.datacult.com/post/everything-you-need-to-know-evaluating-analytics-agents) | Joseph Ojo | The agentic analytics evaluation component and workflow:  |
+
 ## Architecture
 
 ![Architecture: how a question becomes a trust verdict](assets/architecture.png)
@@ -50,7 +61,7 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    2. AGENT SCHEMA                             │
+│                    2. AGENT SCHEMA                                │
 │                                                                  │
 │  The AGENTS schema of context tables: the governed contract      │
 │  that defines what the agent is allowed to query and how.        │
@@ -60,12 +71,12 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    3. AGENT LAYER                                │
+│                    3. AGENT LAYER                                 │
 │                                                                  │
 │  Natural language question                                       │
 │       │                                                          │
 │       ▼                                                          │
-│  Claude (or any LLM) + dbt MCP server                            │
+│  Claude (or any LLM) + DuckDB MCP server                         │
 │       │                                                          │
 │       ▼                                                          │
 │  Reads the AGENTS schema and writes SQL on marts                 │
@@ -77,10 +88,10 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
 └────────────────────────────┬─────────────────────────────────────┘
                              │
                              ▼
-┌──────────────────────────────────────────────────────────────────-┐
-│                    4. EVALUATION LAYER                            │
+┌───────────────────────────────────────────────────────────────────┐
+│                    4. EVALUATION LAYER                             │
 │                                                                   │
-│  Golden questions (curated, validated)                            │
+│  Golden questions (curated, validated)                             │
 │       │                                                           │
 │       ▼                                                           │
 │  Run each through the agent, capture output                       │
@@ -91,30 +102,30 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
 │  │ Strict match │──▶│ Column-tolerant  │──▶│ Approximate match │  │
 │  │ (exact)      │   │ (name/order)     │   │ (numeric tol.)    │  │
 │  └──────┬───────┘   └───────┬──────────┘   └────────┬──────────┘  │
-│         │ pass              │ pass                   │ pass       │
-│         ▼                   ▼                        ▼            │
-│       PASS                PASS                     PASS           │
-│                                                                   │
-│  All stages fail?                                                 │
-│         │                                                         │
-│         ▼                                                         │
-│  LAYER 2: LLM-as-judge                                            │
-│  ┌─────────────────────────────────────────────┐                  │
-│  │ "Do these results answer the same business  │                  │
-│  │  question with the same information?"       │                  │
-│  │  PASS / FAIL + one sentence justification   │                  │
-│  └─────────────────────────────────────────────┘                  │
-│         │                                                         │
-│         ▼                                                         │
-│  SCORECARD (per question + aggregate)                             │
-│                                                                   │
-│                                                                   │
-└───────────────────────────────────────────────────────────────────┘
+│         │ pass              │ pass                   │ pass        │
+│         ▼                   ▼                        ▼             │
+│       PASS                PASS                     PASS            │
+│                                                                    │
+│  All stages fail?                                                  │
+│         │                                                          │
+│         ▼                                                          │
+│  LAYER 2: LLM-as-judge                                             │
+│  ┌─────────────────────────────────────────────┐                   │
+│  │ "Do these results answer the same business  │                   │
+│  │  question with the same information?"       │                   │
+│  │  PASS / FAIL + one sentence justification   │                   │
+│  └─────────────────────────────────────────────┘                   │
+│         │                                                          │
+│         ▼                                                          │
+│  SCORECARD (per question + aggregate)                              │
+│                                                                    │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    5. SYNTHESIS METHODOLOGY                      │
-│                    (documentation, not code)                     │
+│                    5. SYNTHESIS METHODOLOGY                       │
+│                    (documentation, not code)                      │
 │                                                                  │
 │  For interpretation/synthesis evaluation where no single         │
 │  correct answer exists:                                          │
@@ -125,9 +136,13 @@ A third piece makes both halves runnable end to end: the agent layer connecting 
 │  - Correction loop: harvest expert feedback, update framework    │
 │  - Honest limits: what this approach catches and what it cannot  │
 │                                                                  │
-│  Owner: Opeyemi                                                  │
+│                                                                  │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+## Demo
+
+<video src="assets/demo.mp4" controls width="720"></video>
 
 ## Who this is for
 
@@ -159,43 +174,44 @@ dbt-agent-trust/
 ├── .gitignore
 ├── .env.example
 │
-├── dbt_project/                       THE METRIC AGENT PLAYBOOK (David)
+├── dbt_project/                       THE METRIC AGENT PLAYBOOK
 │   ├── models/
 │   │   ├── staging/                   Source cleanup and standardisation
 │   │   ├── intermediate/              Business rules applied once (region, dept, dedup)
 │   │   └── marts/                     Business-ready fact and dimension tables (tagged 'agent')
 │   ├── macros/
 │   │   └── build_agents_schema.sql    Publishes marts + rules into the AGENTS schema
-│   ├── seeds/                          Committed Olist CSVs
-│   ├── olist_business_context.md       Metric defs, rules, scope boundaries -> agents.root
-│   ├── profiles.yml                    DuckDB target (no credentials)
+│   ├── seeds/                         Committed Olist CSVs
+│   ├── olist_business_context.md      Metric defs, rules, scope boundaries -> agents.root
+│   ├── profiles.yml                   DuckDB target (no credentials)
 │   ├── tests/                         Data quality assertions
 │   ├── dbt_project.yml
 │   └── README.md                      Build guide: decisions, tradeoffs, patterns
 │
-├── agent/                             AGENT LAYER (Joe)
-│   ├── agent.py                       Sends questions to the LLM via dbt MCP
-│   ├── run_golden_set.py              Batch runner for all golden questions
-│   ├── config.yaml
+├── agent/                             AGENT LAYER
+│   ├── custom_orchestrator/
+│   │   ├── agent.py                   Sends questions to the LLM via DuckDB MCP
+│   │   ├── contract.py                Loads governed instructions from AGENTS schema
+│   │   ├── schema.py                  Structured output contract
+│   │   ├── config.py                  Configuration loader
+│   │   ├── config.yaml                Model, judge, and path settings
+│   │   ├── mcp_server.py              MCP server for Claude Desktop integration
+│   │   └── run_golden_set.py          Batch runner for all golden questions
+│   ├── agent_outputs/                 Per-question JSON files (gitignored)
 │   └── README.md                      Setup, output format, architecture notes
 │
-├── golden_questions/                  GOLDEN QUESTIONS (David + Opeyemi)
-│   ├── questions.yaml                 Curated questions with expected SQL and results
-│   ├── expected_results/              Pre-computed expected results (one file per question)
+├── golden_questions/                  GOLDEN QUESTIONS
+│   ├── olist_golden_questions.csv     40 curated questions with expected SQL
 │   └── README.md                      How to craft good golden questions
 │
-├── evaluation/                        TRUST BY DESIGN (Opeyemi)
-│   ├── run_eval.py                    Orchestrator: loads outputs, runs comparison, produces results
-│   ├── comparison.py                  Layered deterministic comparison
-│   ├── judge.py                       LLM-as-judge fallback
-│   ├── judge_prompt.txt               Judge prompt template
-│   ├── scorecard.py                   Human-readable scorecard generator
+├── evaluation/                        TRUST BY DESIGN
+│   ├── eval_pipeline.py               Layered comparison + LLM judge + scorecard
 │   ├── results/                       Output scorecards (gitignored)
 │   └── README.md                      How the evaluation works, scope and limits
 │
+├── assets/                            Architecture diagram + demo video
+│
 └── docs/                              METHODOLOGY AND CONTEXT
-    ├── synthesis_evaluation.md        The interpretation evaluation methodology
-    ├── decision_criteria.md           When to automate vs. when to keep human
     ├── golden_question_guide.md       Detailed guide to writing effective golden questions
     └── prior_work.md                  Positioning vs. Spider 2.0, ADE-bench, Hex, Anthropic
 ```
@@ -205,8 +221,8 @@ dbt-agent-trust/
 ### Prerequisites
 
 - Python 3.10+
-- [dbt-fusion](https://docs.getdbt.com/docs/local/connect-data-platform/duckdb-setup?version=2.0&name=Fusion#installing-dbt-duckdb) with the DuckDB adapter
-- An Anthropic API key (for the agent and the LLM judge)
+- [dbt Fusion](https://docs.getdbt.com/docs/local/connect-data-platform/duckdb-setup?version=2.0&name=Fusion#installing-dbt-duckdb) with the DuckDB adapter
+- An Anthropic/OpenAI API key (for the agent and the LLM judge)
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
 ### Quick start
@@ -228,14 +244,32 @@ dbt deps && dbt build
 cd ..
 
 # Run golden questions through the agent
-python agent/run_golden_set.py
+python -m agent.custom_orchestrator.run_golden_set
 
-# Evaluate
-python evaluation/run_eval.py
-
-# View the scorecard
-python evaluation/scorecard.py
+# Evaluate agent performance
+python -m evaluation.eval_pipeline
 ```
+
+### Interactive mode (Claude Desktop)
+
+Connect the agent as an MCP server in Claude Desktop for conversational analytics:
+
+```json
+{
+  "mcpServers": {
+    "olist-analytics": {
+      "command": "/path/to/dbt-agent-trust/.venv/bin/python",
+      "args": ["-m", "agent.custom_orchestrator.mcp_server"],
+      "cwd": "/path/to/dbt-agent-trust",
+      "env": {
+        "PYTHONPATH": "/path/to/dbt-agent-trust"
+      }
+    }
+  }
+}
+```
+
+Then ask questions in Claude Desktop: "What was total GMV for Q1 2018?"
 
 ## How this relates to existing work
 
@@ -268,8 +302,8 @@ Our goal is to provide a clear, forkable starting point that teaches the approac
 
 This project is the joint Big Project from Data Culture's two members of the inaugural dbt Champions cohort and Joseph, a Senior Data Engineer at Data Culture:
 
-- **David Effiong**: *The Metric Agent Playbook*: building governed data agents on a dbt Agent Schema
-- **Opeyemi Fabiyi**: *Trust by Design*: evaluating whether those agents are trustworthy
+- **David Effiong**: *The Metric Agent Playbook* — building governed data agents on a dbt Agent Schema
+- **Opeyemi Fabiyi**: *Trust by Design* — evaluating whether those agents are trustworthy
 
 Two halves of one system. Built together, published together.
 
