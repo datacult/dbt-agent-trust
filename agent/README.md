@@ -1,7 +1,5 @@
 # Agent Layer
 
-**Owner: Joseph Ojo**
-
 This layer connects a configured language model to the governed Olist marts in
 DuckDB through MCP.
 
@@ -64,10 +62,12 @@ The evaluation layer reads `agent_sql` and `agent_result`. Everything else is me
 python -m agent.custom_orchestrator.agent "What was the total revenue last quarter?"
 ```
 
-Running the whole golden set is an evaluation-orchestration concern and lives in the
-evaluation layer: `python -m evaluation.run_golden_set` (see `evaluation/README.md`).
-It imports this layer's public API (`build_agent`, `answer_with`) and writes one
-output JSON record per question for evaluation.
+```bash
+# To run the agent on the entire golden question 
+python -m agent.custom_orchestrator.run_golden_set
+```
+
+It imports this layer's public API (`build_agent`, `answer_with`) and writes one output JSON record per question for evaluation.
 
 To expose the agent to an MCP client over stdio, run:
 

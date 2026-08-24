@@ -1,7 +1,5 @@
 # The Metric Agent Playbook: a dbt Agent Schema
 
-**Owner: David Effiong**
-
 The data foundation for a **trusted, warehouse-native metrics layer that an AI agent can query directly.** It models a public dataset into governed marts, then publishes the models, their column meanings, and the business rules into an **Agent Schema**, a standard `AGENTS` schema of tables the agent reads to learn what it can query and how.
 
 ## Why Agent Schema (and not the dbt Semantic Layer)
