@@ -8,6 +8,8 @@ venv/
 # project outputs
 evaluation/results/
 agent/agent_outputs/
+agent/custom_orchestrator/agent_outputs/
+agent/custom_orchestrator/config.yaml
 
 # editors / OS
 .vscode/
