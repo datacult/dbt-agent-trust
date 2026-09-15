@@ -34,8 +34,8 @@ Each layer has a dedicated technical article covering the decisions, trade-offs,
 
 | Article | Author | Covers |
 |---|---|---|
-| [The Metric Agent Playbook: Building a Governed Data Agent on dbt Agent Schema](https://www.datacult.com/post/TODO) | David Effiong | Why Agent Schema over the Semantic Layer, how the dbt project is structured, the AGENTS schema design, and how to apply it to your own project |
-| [Making Agents Evaluable: Instrumenting an MCP-Connected Data Agent for Trust](https://www.datacult.com/post/TODO) | Joseph Ojo | Connecting an LLM to a governed semantic layer via MCP, designing the output contract for downstream evaluation, and what to instrument |
+| [The Metric Agent Playbook: Building a Governed Data Agent on dbt Agent Schema](https://www.datacult.com/post/the-metric-agent-playbook-building-a-governed-data-agent-on-dbt-agent-schema) | David Effiong | Why Agent Schema over the Semantic Layer, how the dbt project is structured, the AGENTS schema design, and how to apply it to your own project |
+| [Making Agents Evaluable: Instrumenting an MCP-Connected Data Agent for Trust](https://www.datacult.com/post/building-the-agent-layer-behind-a-governed-data-agent) | Joseph Ojo | Connecting an LLM to a governed semantic layer via MCP, designing the output contract for downstream evaluation, and what to instrument |
 | [If You Can't Measure It, Don't Ship It](https://www.datacult.com/post/if-you-cant-measure-it-dont-ship-it) | Opeyemi Fabiyi | Why evaluation matters, how to measure accuracy before deployment, and the methodology for agent accuracy evaluation |
 | [Everything You Need to Know: Evaluating Analytics Agents](https://www.datacult.com/post/everything-you-need-to-know-evaluating-analytics-agents) | Joseph Ojo | The agentic analytics evaluation component and workflow:  |
 
